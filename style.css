@@ -1,0 +1,27 @@
+@import "reset.css"; 
+
+html, body {
+	width: 100%;
+	height: 100%;
+	margin: 0px;
+	padding: 0px;
+}
+
+/*<!--------------------Navagation--------------------!>*/
+#pageWrapper
+{
+	background-color:#000;
+	height:100%;
+	width:100%;
+	display: flex;
+	flex-direction: column;
+}
+
+/*<!--------------------Page Content--------------------!>*/
+#pageContent
+{
+	display: flex;
+	background:#151515;
+	margin: 20px;
+	height: 100%;
+}

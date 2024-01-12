@@ -1,0 +1,73 @@
+.group-layer-container
+{
+	border: 2px solid rgba(0,0,0,0.2);
+	background: #2f2f2f;
+	background-clip: padding-box;
+	text-align: center;
+	max-width: 220px;
+	border-radius: 5px;
+	color:white;
+}
+.group-layer-button
+{
+	display:flex;
+	/*cursor: pointer;*/
+	width: 44px;
+	height: 44px;
+	text-align: center;
+}
+.group-layer-button-icon
+{
+	cursor: pointer;
+}
+.group-layer-button-title
+{
+	width: 75%;
+	line-height: 44px;
+	font-size: 18px;
+	margin-left: 5px;
+	margin-right: 5px;
+	color:white;
+}
+.group-layer-svg
+{
+	display: block;
+	height: 22px;
+	width: 22px;
+	padding: 11px;
+	fill: white;
+}
+.group-layer-menu {
+	display: none;
+	padding-left:5px;
+	padding-right:5px;
+	word-wrap: break-word;
+	overflow-y: auto;
+	max-height: calc(100vh - 145px);
+}
+
+.group-layer-menu-open .group-layer-button {
+	/*pointer-events: none;*/ /* Disable pointer events when menu is open */
+	width:100%;
+}
+/*Layer groups menu area*/
+.group-layer-group-container 
+{
+	margin-bottom: 10px;
+}
+
+.group-layer-group-container-label {
+	display: block;
+	font-weight: bold;
+}
+
+.group-layer-group-container-layer {
+	display: flex;
+	align-items: center;
+}
+.group-layer-type-separator
+{
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -5px 5px -5px;
+}

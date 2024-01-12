@@ -1,0 +1,146 @@
+/*Override basestyle*/
+#content
+{
+	background: #1E1E1E;
+}
+/*Start map specific style*/
+.TagButton
+{
+	display:block;
+	background: #242424;
+	border-radius: 2px;
+	color: white;
+	border: solid 1px black;
+	padding: 5px;
+	cursor: pointer;
+	
+}
+.TagButton:hover
+{
+	background: #2f2f2f;
+}
+.TagButtonActive
+{
+	background: #646464;
+}
+#leafMap
+{
+	height:100%;
+	width:100%;
+	background: transparent;
+	outline-style: none !important;
+}
+.SideBarbox
+{
+	position: absolute; 
+	left: 10px;
+	z-index: 1000;
+	min-width:200px;
+	max-width:200px;
+}
+.SideBarbox p, .SideBarbox a
+{
+	text-align: center;
+}
+#InfoBox
+{
+	top: 140px;
+}
+.SideBarbox > div:first-of-type
+{
+	background:#282828cc;
+}
+.SideBarbox > div:nth-of-type(2) 
+{
+	background: #0000005e;
+	padding: 5px;
+}
+.SideBarbox p
+{
+	color: white;
+	font-size: 18px;
+}
+#DrawBox
+{
+	top: 240px;
+}
+#DrawBox > div:first-of-type
+{
+	background:#282828cc;
+}
+#DrawBox > div:nth-of-type(2) 
+{
+	padding: 5px;
+	background: #0000005e;
+}
+#DrawBox p
+{
+	color: white;
+	font-size: 18px;
+}
+.grid-top-marker
+{
+	font-size: 32px;
+	text-align: center;
+	line-height: 1px;
+	text-shadow: 3px 3px 4px rgba(0, 0, 0, 1);
+	color: white;
+	left: -6px;
+	/*border: red solid 1px;*/
+}
+.grid-side-marker
+{
+	font-size: 32px;
+	text-align: right;
+	line-height: 1px;
+	text-shadow: 3px 3px 4px rgba(0, 0, 0, 1);
+	color: white;
+	/*border: red solid 1px;*/
+	min-width: 30px;
+	left: -20px;
+}
+/*ZIndex option on img overlay doesn't seem to work*/
+.ResImg
+{
+	z-index: 100 !important;
+}
+/*Marker Tooltip Css*/
+.tooltipLabels
+{
+	position: absolute;
+	color:white;
+	border:none;
+	font-size: 15px;
+	font-family: Asul;
+	background:none;
+	box-shadow: none;
+}
+/*Leaflet Overrides*/
+.leaflet-container .leaflet-control-attribution
+{
+	background: rgba(0, 0, 0, 0.8);
+	color: white;
+}
+.leaflet-container 
+{
+  cursor: crosshair !important;
+}
+.leaflet-bar a
+{
+	border-bottom: 1px solid black;
+	color: white;
+}
+.leaflet-control-layers, .leaflet-bar a
+{
+	background:#2f2f2f;
+	color: #fbfbfb;
+}
+.leaflet-bar a.leaflet-disabled
+{
+	background:#2f2f2f;
+	color: black;
+}
+.leaflet-bar a:hover, .leaflet-bar a:focus
+{
+	background-color: #3e3e3e;
+}

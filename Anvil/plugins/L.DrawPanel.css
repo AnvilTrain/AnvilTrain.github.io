@@ -1,0 +1,369 @@
+:root
+{
+	--svg-icon-border: red;
+}
+.draw-panel-container
+{
+	border: 2px solid rgba(0,0,0,0.2);
+	background: #2f2f2f;
+	background-clip: padding-box;
+	text-align: center;
+	max-width: 200px;
+	border-radius: 5px;
+	color:white;
+}
+.draw-panel-button
+{
+	display:flex;
+	/*cursor: pointer;*/
+	width: 44px;
+	height: 44px;
+	text-align: center;
+}
+.draw-panel-button-icon
+{
+	cursor: pointer;
+}
+.draw-panel-button-icon:hover .draw-panel-svg
+{
+	/*filter: drop-shadow(2px 0px 0px var(--svg-icon-border))
+	drop-shadow(-2px 0px 0px var(--svg-icon-border))
+	drop-shadow(0px 2px 0px var(--svg-icon-border))
+	drop-shadow(0px -2px 0px var(--svg-icon-border));*/
+}
+.draw-panel-button-active
+{
+	/*filter: drop-shadow(1px 0px 0px var(--svg-icon-border))
+	drop-shadow(-1px 0px 0px var(--svg-icon-border))
+	drop-shadow(0px 1px 0px var(--svg-icon-border))
+	drop-shadow(0px -1px 0px var(--svg-icon-border));*/
+}
+.draw-panel-button-title
+{
+	width: 75%;
+	line-height: 44px;
+	font-size: 18px;
+	margin-left: 5px;
+	margin-right: 5px;
+	color:white;
+}
+.draw-panel-svg
+{
+	display: block;
+	height: 22px;
+	width: 22px;
+	padding: 11px;
+	fill: white;
+}
+.draw-panel-menu {
+	display: none;
+	margin-top: 5px;
+	padding: 5px;
+	max-width: 100%;
+	word-wrap: break-word;
+}
+
+.draw-panel-menu-open .draw-panel-button {
+	/*pointer-events: none;*/ /* Disable pointer events when menu is open */
+	width:100%;
+}
+.draw-panel-toolbox-button
+{
+	text-align: center;
+	display: block;
+	background: #242424;
+	border-radius: 2px;
+	color: white !important;
+	border: solid 1px black;
+	padding: 5px;
+	cursor: pointer;
+	margin-bottom: 5px;
+}
+.draw-panel-toolbox-button:hover
+{
+	background: #2f2f2f;
+}
+
+/*Generic draw panel overlay*/
+.draw-panel-overlay-container
+{
+	position: absolute;
+	z-index: 2000;
+	height: calc(100vh - 40px);
+	width: 100%;
+	background: #000000b5;
+}
+.draw-panel-overlay-menu
+{
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	height: 60%;
+	width: 50%;
+	top: 20%;
+	background: #1a1a1a;
+	margin-left: auto;
+	margin-right: auto;
+	border: #8a8a8a solid 1px;
+}
+.draw-panel-overlay-menu-header
+{
+	display:flex;
+	align-items: center;
+	width: 100%;
+	height: 30px;
+	background: #424242;
+}
+.draw-panel-overlay-menu-header-title
+{
+	color: white;
+	margin-left: 10px;
+	width: calc(100% - 40px);
+}
+.draw-panel-overlay-menu-header-close
+{
+	display: block;
+	background: #bf0000;
+	height: 20px;
+	width: 20px;
+	text-align: center;
+	border: red solid 1px;
+	border-radius: 3px;
+	margin-left: 5px;
+	line-height:20px;
+	color:white;
+	cursor:pointer;
+	user-select: none;
+}
+.draw-panel-overlay-menu-content-wrapper
+{
+	display: flex;
+	height: 95%; /*Simple way to stop the content from overflowing*/
+	width: 100%;
+}
+.draw-panel-overlay-menu-content
+{
+	display: flex;
+	height: 100%;
+	width: 80%;
+	flex-wrap: wrap;
+	overflow-y: scroll;
+	align-content: flex-start;
+	justify-content: center;
+}
+.draw-panel-overlay-menu-sidebar
+{
+	height: 100%;
+	width: 20%;
+}
+#draw-panel-overlay-menu-sidebar-top
+{
+	display: flex;
+	flex-direction: column;
+	height: 93%;
+	border-left: solid 1px #8a8a8a;
+}
+#draw-panel-overlay-menu-sidebar-bottom
+{
+	height: 7%;
+	border-left: solid 1px #8a8a8a;
+}
+
+#draw-panel-overlay-menu-sidebar-top p
+{
+	color: white;
+	text-align: center;
+	margin-top: 10px;
+}
+#draw-panel-overlay-menu-sidebar-top input
+{
+	display: flex;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 5px;
+	width: 80%;
+	box-sizing: border-box;
+}
+.draw-panel-overlay-menu-sidebar-halfinput
+{
+	width:45%!important;
+	margin-top:5px;
+}
+.draw-panel-overlay-menu-sidebar-heading
+{
+	font-size:12px;
+	font-style:italic;
+	margin-top:20px;
+}
+.draw-panel-overlay-menu-sidebar-group
+{
+	display:flex;
+	padding: 0px 5px 5px 5px;
+}
+.draw-panel-overlay-menu-sidebar-button
+{
+	display: block;
+	width: 100px;
+	background: #464646;
+	border: #6c6c6c solid 1px;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+}
+.draw-panel-overlay-menu-sidebar-button:hover
+{
+	border: red solid 1px;
+	cursor:pointer;
+}
+/*Toolbox specific Overlay*/
+.draw-panel-toolbox-menu-item
+{
+	display: block;
+	width: 100px;
+	min-height:100px;
+	background: #464646;
+	border: #6c6c6c solid 1px;
+	text-align: center;
+	margin-left: 10px;
+	margin-right: 10px;
+	margin-top: 10px;
+	user-select: none;
+}
+.draw-panel-toolbox-menu-item:hover
+{
+	border: #ffff solid 1px;
+	cursor:pointer;
+}
+.draw-panel-toolbox-menu-item  img
+{
+	height: 40px;
+	width: 40px;
+}
+.draw-panel-toolbox-menu-item p
+{
+	width: 100%;
+	text-align: center;
+	color: white;
+	margin-top: 11px;
+	margin-bottom: 5px;
+}
+.draw-panel-toolbox-menu-item-title
+{
+	
+}
+.draw-panel-marker-tooltip
+{
+	position: absolute;
+	color:white;
+	border:none;
+	font-size: 15px;
+	font-family: Asul;
+	background:#3d3935;
+	box-shadow: none;
+}
+/*Tool sidebar slots*/
+.draw-panel-slot
+{
+	text-align: center;
+	display: block;
+	background: #242424;
+	border-radius: 2px;
+	color: white !important;
+	border: solid 1px black;
+	padding: 5px;
+	cursor: pointer;
+	user-select: none;
+}
+.draw-panel-slot:hover
+{
+	background: #2f2f2f;
+}
+.draw-panel-slot-active
+{
+	background: #646464;
+}
+.draw-panel-button-half-container
+{
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.draw-panel-button-half
+{
+	display: block;
+	text-align: center;
+	background: #242424;
+	border-radius: 2px;
+	border: solid 1px black;
+	color: white !important;
+	padding: 5px;
+	cursor: pointer;
+	user-select: none;
+	margin-left: auto;
+	margin-right: auto;
+}
+.draw-panel-button-half:hover
+{
+	background: #2f2f2f;
+}
+/*Draw Guide overlay, overrides generic overlay*/
+#draw-panel-guide-menu
+{
+	width: 40%;
+}
+#draw-panel-guide-menu-content
+{
+	justify-content: flex-start;
+	width: 100%;
+	overflow-y: auto;
+}
+#draw-panel-guide-menu-content *
+{
+	color:white;
+	width: 100%;
+	text-align: center;
+}
+#draw-panel-guide-menu-content p
+{
+	margin-top:10px;
+}
+/*Coloris picker Styles*/
+#Draw-Color-Picker
+{
+	/*width: 100%;*/
+	cursor: pointer;
+}
+.clr-field input 
+{
+	width: 150px;
+	height: 24px;
+	padding: 0 10px;
+	font-family: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+	box-sizing: border-box;
+}
+.clr-field button 
+{
+	width: 100%!important;
+	height: 100%!important;
+}
+/*Phone Styles*/
+@media only screen and (max-width: 900px) 
+{
+	/*Draw panel toolbox area*/
+	.draw-panel-overlay-menu-content-wrapper
+	{
+		flex-direction: column-reverse;
+	}
+	.draw-panel-overlay-menu-content
+	{
+		height: 80%;
+		width: 100%;
+	}
+	.draw-panel-overlay-menu-sidebar {
+		width: 100%;
+		height: 20%;
+		overflow-y: scroll;
+	}
+}

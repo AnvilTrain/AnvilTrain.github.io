@@ -1,0 +1,46 @@
+.map-options-container
+{
+	border: 2px solid rgba(0,0,0,0.2);
+	background: #2f2f2f;
+	background-clip: padding-box;
+	text-align: center;
+	max-width: 200px;
+	border-radius: 5px;
+	color:white;
+}
+.map-options-button
+{
+	display:flex;
+	cursor: pointer;
+	width: 44px;
+	height: 44px;
+	text-align: center;
+}
+.map-options-button-title
+{
+	width: 75%;
+	line-height: 44px;
+	font-size: 18px;
+	margin-left: 10px;
+}
+.map-options-svg
+{
+	display: block;
+	height: 22px;
+	width: 22px;
+	padding: 11px;
+	flex-shrink: 0;
+}
+
+.map-options-menu {
+	display: none;
+	margin-top: 5px;
+	padding: 5px;
+	max-width: 100%;
+	word-wrap: break-word;
+}
+
+.map-options-menu-open .map-options-button {
+	pointer-events: none; /* Disable pointer events when menu is open */
+	width:100%;
+}

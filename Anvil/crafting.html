@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Anvil Crafting Calculator</title>
+		<link rel="icon" type="image/x-icon" href="favicon.ico">
+		<link rel="stylesheet" href="reset.css">
+		<link rel="stylesheet" href="basestyle.css">
+		<link rel="stylesheet" href="craftingstyle.css">
+		<script src="crafting.js"></script>
+	</head>
+	<body>
+		<div id="content-wrap">
+			<nav><a href="index.html">Map</a><a href="raid.html">Raid Calculator</a><a href="javascript:location.reload()">Crafting Calculator</a></nav>
+			<div id="content">
+				<div class="left-side">
+					<div id="left-side-top">
+						<div id="left-side-top-tabber">
+							<a id="left-side-item-tab">Items</a>
+							<a id="left-side-structure-tab" style="margin-left: 5px;">Structures</a>
+						</div>
+						<div id="left-side-top-menu">
+							<div id="left-side-search-container">
+								<input id="left-side-search" type="text" placeholder="Search...">
+								<div id="left-side-search-clear">&#10006;</div>
+							</div>
+							<label style = "color:white;">Category:</label>
+							<select id="left-side-filter"><option value="None">None</option></select>
+							<h2 id="left-side-results">Loading...</h2>
+						</div>
+					</div>
+					<div id="left-side-bottom-structure" style="display:none;">
+					<!--Dynamic content goes here-->
+					</div>
+					<div id = "left-side-bottom-item">
+					<!--Dynamic content goes here-->
+					</div>
+				</div>
+				<div class="right-side">
+					<div id="right-side-top">
+						<div id="right-side-top-empty">
+						</div>
+						<div id="right-side-top-menu">
+							<h2>Crafting List</h2>
+							<a id="right-side-list-clear">Clear All</a>
+							<!--<label style = "color:white;">Raw Mode</label>
+							<input type="checkbox" id="right-side-check-rawmode"/>-->
+						</div>
+					</div>
+					<div id ="right-side-content">
+					<!--Dynamic content goes here-->
+					</div>
+					<div id ="right-side-bottom">
+					</div>
+				</div>
+			</div>
+		</div>
+		<script data-goatcounter="https://cooltrain.goatcounter.com/count" async src="count.js"></script>
+	</body>
+</html>

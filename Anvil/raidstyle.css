@@ -1,0 +1,73 @@
+#gridWrap
+{
+	display: flex;
+	flex-direction: column;
+	background: #1e1e1e;
+	color: white;
+	width: 100%;
+}
+#gridTop
+{
+	padding: 10px;
+	font-size:14px;
+	border-bottom: solid 1px #8a8a8a;
+}
+#gridTop input
+{
+	height:20px;
+	margin-right: 20px;
+}
+#gridTop label
+{
+	margin-right: 5px;
+}
+#gridTop p
+{
+	margin-bottom: 5px;
+}
+#gridBottom
+{
+	display: flex;
+	height: 95%;
+	flex-direction: column;
+	background: #1e1e1e;
+	color: white;
+	width: 100%;
+	padding: 10px;
+	overflow-y: scroll;
+	box-sizing: border-box;
+}
+.row 
+{
+	display: flex;
+	width: 100%;
+	padding: 10px;
+	border-bottom: 1px solid #444;
+	box-sizing: border-box;
+}
+
+.row:hover 
+{
+	background-color: #282828;
+}
+
+.row-header 
+{
+	background-color: #333;
+	color: white;
+}
+
+.cell 
+{
+	display: flex;
+	flex: 0.8;
+}
+.cell-name
+{
+	flex: 1;
+}
+
+.cell span
+{
+	line-height: 48px;
+}
