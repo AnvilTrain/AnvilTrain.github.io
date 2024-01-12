@@ -123,7 +123,7 @@ var raidManager = {
 		cell_1.innerHTML = "Structure";
 		cell_1.className = "cell cell-name";
 		const cell_2 = document.createElement("div");
-		cell_2.innerHTML = "Health";
+		cell_2.innerHTML = "Health (Default/Extra)";
 		cell_2.className = "cell cell-hp";
 		const cell_3 = document.createElement("div");
 		cell_3.innerHTML = "Torch (Min/Max)";
@@ -161,7 +161,7 @@ var raidManager = {
 						cell.innerHTML = `<img src=${data[i].iconLink} width="48" height="48"><span>${data[i].name}${data[i].tierText}</span>`;
 					break;
 					case 1:
-						cell.innerHTML = `<span>${data[i].health}</span>`;
+						cell.innerHTML = `<span>${data[i].health} / ${data[i].health + (data[i].health * (rngExtraValue.value / 100))}</span>`;
 					break;
 					case 2:
 						cell.innerHTML = `<span>${Math.ceil(data[i].health / TORCH_DMG)} / ${Math.ceil(data[i].health / TORCH_DMG + data[i].health / TORCH_DMG * (rngExtraValue.value / 100))}</span>`;

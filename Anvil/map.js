@@ -20,7 +20,7 @@ var leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.5.0 | Game 62033 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.5.1 | Game 62531 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -143,8 +143,9 @@ var leafMap = {
 
 		//toolbox.tools.push({ type:L.CompositeShape, toolOptions:{ name: "Beacon Composite", isStatic: true, hasMiddleDot: false }, options: { radius: 23000, color:'red', interactive: false, compositeOptions:{shapes:[{type:L.circle, options: {radius: 18500, color:'red', interactive: false }},{type:L.circle, options: {radius: 12000, color:'red', interactive: false }}]} }});
 	
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T1", isStatic: true },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T1", isStatic: true},
 		iconOptions:{iconUrl: "./img/icons/IconAncientT1.png", size: 76},
+		tooltipOptions:{offset:{y:-43}},
 		options: { interactive: false }});
 		
 		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T2", isStatic: true },
@@ -153,10 +154,12 @@ var leafMap = {
 		
 		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T3", isStatic: true },
 		iconOptions:{iconUrl: "./img/icons/IconAncientT3.png", size: 76},
+		tooltipOptions:{offset:{y:-55}},
 		options: { interactive: false }});
 		
 		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T1", isStatic: true },
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT1.png", size: 76},
+		tooltipOptions:{offset:{y:-45}},
 		options: { interactive: false }});
 		
 		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T2", isStatic: true },
@@ -165,10 +168,14 @@ var leafMap = {
 		
 		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T3", isStatic: true },
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT3.png", size: 76},
+		tooltipOptions:{offset:{y:-55}},
 		options: { interactive: false }});
 
 		//Structure Icons
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Large Camp", isStatic: true }, iconOptions:{iconUrl: "./img/icons/IconCamp.png", size: 64}, options: { interactive: false }});
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Large Camp", isStatic: true }, 
+		iconOptions:{iconUrl: "./img/icons/IconCamp.png", size: 64}, 
+		tooltipOptions:{offset:{y:-42}}, 
+		options: { interactive: false }});
 
 		//Foxhole region testing
 		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Foxhole Hex", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 219700, interactive: false }});
@@ -270,11 +277,15 @@ var leafMap = {
 				
 				//Handle our click/popup text
 				let popupText = "";
+				
+				if(worldObj.Type)
+					popupText += `Type: ${worldObj.Type}<br>`;
+				
 				if(worldObj.AltName)
-				{
 					popupText += `Name: ${worldObj.AltName}<br>`;
-				}
-				popupText += `Obj-Name: ${worldObj.Name}<br>Map Pos: ${[mapPos.Y, mapPos.X]}`;
+			
+				if(worldObj.Name)
+					popupText += `Obj-Name: ${worldObj.Name}<br>Map Pos: ${[mapPos.Y, mapPos.X]}`;
 				
 				//Actually create the shapes
 				if (worldObj.Name.includes("BPMapBorderActor"))

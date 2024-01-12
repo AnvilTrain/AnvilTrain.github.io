@@ -210,7 +210,7 @@ L.Control.DrawPanel = L.Control.extend({
 				var layerLatLng = e.latlng;
 				if(tool.positionOptions)
 				{
-					layerLatLng = L.latLng(tool.positionOptions.x, tool.positionOptions.y);
+					layerLatLng = L.latLng(tool.positionOptions.y, tool.positionOptions.x);
 				}
 				
 				//Create our layer
@@ -603,14 +603,31 @@ L.Control.DrawPanel = L.Control.extend({
 			//Bind/replace options from the template with any input any options from the toolbox inputs
 			if(this._ToolboxInputElements.TooltipEle)
 			{
-				if(this._ToolboxInputElements.TooltipEle.value == "")
+				const tooltipObj = {text:undefined, permanent: true, direction:'center', offset:{x:0,y:-50}, className: "draw-panel-marker-tooltip"};
+				tooltipObj.text = this._ToolboxInputElements.TooltipEle.value != "" ? this._ToolboxInputElements.TooltipEle.value : (toolboxObj.data.tooltipOptions ? (toolboxObj.data.tooltipOptions.text ?? "") :undefined);
+				
+				if(toolboxObj.data.tooltipOptions)
+					tooltipObj.offset = toolboxObj.data.tooltipOptions.offset ? {x:toolboxObj.data.tooltipOptions.offset.x ?? 0,y:toolboxObj.data.tooltipOptions.offset.y ?? -50} : {x:0,y:-50}; 
+				
+				//If we have static tooltip set with text or if we have options text set we want tooltips
+				if(toolboxObj.data.tooltipOptions && toolboxObj.data.tooltipOptions.text || this._ToolboxInputElements.TooltipEle.value != "")
+				{
+					toolboxObj.data.tooltipOptions = tooltipObj;
+				}
+				else
+				{
+					//No default tooltip options set
+					toolboxObj.data.tooltipOptions = undefined;
+				}
+				
+				/*if(!toolboxObj.data.tooltipOptions && this._ToolboxInputElements.TooltipEle.value == "")
 				{
 					toolboxObj.data.tooltipOptions = undefined;
 				}
 				else
 				{
 					toolboxObj.data.tooltipOptions = {text: this._ToolboxInputElements.TooltipEle.value, permanent: true, direction:'center', offset:{x:0,y:-50}, className: "draw-panel-marker-tooltip"};
-				}
+				}*/
 				
 				console.log("Replaced tooltip options");
 			}
