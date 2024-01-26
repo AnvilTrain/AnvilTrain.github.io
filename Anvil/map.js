@@ -20,7 +20,7 @@ var leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.5.1 | Game 62531 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.5.2 | Game 62910 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -121,65 +121,69 @@ var leafMap = {
 		const toolbox = {};
 		toolbox.tools = [];
 		
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "TownHall Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Pump No-Build Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 8000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Well No-Build Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 4000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Water Wheel No-Build Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 4000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "TownHall Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Large Camp Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 5400, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Pump No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 8000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Well No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 4000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Water Wheel No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 4000, interactive: false }});
 		
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Beacon Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T1 Town Beacon Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T2 Town Beacon Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 15000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T3 Town Beacon Radius", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 20000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T1 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T2 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 15000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T3 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 20000, interactive: false }});
 		
-		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Polygon Tool", isStatic: false }, options: { color:'red', interactive: false }});
-		toolbox.tools.push({ type:L.polyline, toolOptions:{ name: "Line Tool", isStatic: false }, options: { color:'red', interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Storm Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 120000, interactive: false }});
+		
+		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Polygon Tool", type: ToolType.Spline }, options: { color:'red', interactive: false }});
+		toolbox.tools.push({ type:L.polyline, toolOptions:{ name: "Line Tool", type: ToolType.Spline }, options: { color:'red', interactive: false }});
+		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Rect Tool", type: ToolType.Rect }, options: { color:'red', interactive: false }});
 		
 		//This needs a symbol set but we current set it inside the init for the custom type
-		toolbox.tools.push({ type:L.polylineDecorated, toolOptions:{ name: "Arrow Line", isStatic: false },
+		toolbox.tools.push({ type:L.polylineDecorated, toolOptions:{ name: "Arrow Line", type: ToolType.Spline },
 		options: {color:'red', interactive: false, decorationOptions:{ patterns: [{ offset: 25, repeat: 25, symbolObj:{type:L.Symbol.arrowHead, options:{ pixelSize: 15, pathOptions: { stroke: true, color: 'red', interactive: false} }} }] }}});
 		
-		toolbox.tools.push({ type:L.PolylineRuler, toolOptions:{ name: "Ruler", isStatic: false }, options: {color:'red', dashArray: '10, 10', interactive: false }});
-		toolbox.tools.push({ type: L.positionMarker, toolOptions:{ name: "Position Pin", isStatic: true, allowTooltipOverride: false}, options: {draggable:true, interactive: true}});
+		toolbox.tools.push({ type:L.PolylineRuler, toolOptions:{ name: "Ruler", type: ToolType.Spline }, options: {color:'red', dashArray: '10, 10', interactive: false }});
+		toolbox.tools.push({ type: L.positionMarker, toolOptions:{ name: "Position Pin", type: ToolType.Static, allowTooltipOverride: false}, options: {draggable:true, interactive: true}});
 
-		//toolbox.tools.push({ type:L.CompositeShape, toolOptions:{ name: "Beacon Composite", isStatic: true, hasMiddleDot: false }, options: { radius: 23000, color:'red', interactive: false, compositeOptions:{shapes:[{type:L.circle, options: {radius: 18500, color:'red', interactive: false }},{type:L.circle, options: {radius: 12000, color:'red', interactive: false }}]} }});
+		//toolbox.tools.push({ type:L.CompositeShape, toolOptions:{ name: "Beacon Composite", type: true, hasMiddleDot: false }, options: { radius: 23000, color:'red', interactive: false, compositeOptions:{shapes:[{type:L.circle, options: {radius: 18500, color:'red', interactive: false }},{type:L.circle, options: {radius: 12000, color:'red', interactive: false }}]} }});
 	
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T1", isStatic: true},
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T1", type: ToolType.Static},
 		iconOptions:{iconUrl: "./img/icons/IconAncientT1.png", size: 76},
 		tooltipOptions:{offset:{y:-43}},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T2", isStatic: true },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T2", type: ToolType.Static },
 		iconOptions:{iconUrl: "./img/icons/IconAncientT2.png", size: 76},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T3", isStatic: true },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T3", type: ToolType.Static },
 		iconOptions:{iconUrl: "./img/icons/IconAncientT3.png", size: 76},
 		tooltipOptions:{offset:{y:-55}},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T1", isStatic: true },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T1", type: ToolType.Static },
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT1.png", size: 76},
 		tooltipOptions:{offset:{y:-45}},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T2", isStatic: true },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T2", type: ToolType.Static },
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT2.png", size: 76},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T3", isStatic: true },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T3", type: ToolType.Static },
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT3.png", size: 76},
 		tooltipOptions:{offset:{y:-55}},
 		options: { interactive: false }});
 
 		//Structure Icons
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Large Camp", isStatic: true }, 
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Large Camp", type: ToolType.Static }, 
 		iconOptions:{iconUrl: "./img/icons/IconCamp.png", size: 64}, 
 		tooltipOptions:{offset:{y:-42}}, 
 		options: { interactive: false }});
 
 		//Foxhole region testing
-		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Foxhole Hex", isStatic: true, hasMiddleDot: true }, options: { color:'red', radius: 219700, interactive: false }});
-		//toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant Hex Img", isStatic: true }, iconOptions:{iconUrl: "./img/FoxholeRegion.png", size: 218}, options: { interactive: false }});
+		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Foxhole Hex", type: true, hasMiddleDot: true }, options: { color:'red', radius: 219700, interactive: false }});
+		//toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant Hex Img", type: true }, iconOptions:{iconUrl: "./img/FoxholeRegion.png", size: 218}, options: { interactive: false }});
 		
 		
 		return toolbox;

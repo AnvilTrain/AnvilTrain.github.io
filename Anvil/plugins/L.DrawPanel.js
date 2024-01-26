@@ -1,3 +1,10 @@
+//Js Enums are 'fun'
+const ToolType = Object.freeze({
+  Static: 'static',
+  Spline: 'spline',
+  Rect: 'rect',
+});
+
 L.Control.DrawPanel = L.Control.extend({
 	initialize: function (options) 
 	{
@@ -204,64 +211,81 @@ L.Control.DrawPanel = L.Control.extend({
 				tool.options.pane = "draw";
 			}
 			
-			if(tool.toolOptions.isStatic === true)
+			switch(tool.toolOptions.type)
 			{
-				//We need to check for a position override before making our new layer
-				var layerLatLng = e.latlng;
-				if(tool.positionOptions)
-				{
-					layerLatLng = L.latLng(tool.positionOptions.y, tool.positionOptions.x);
-				}
-				
-				//Create our layer
-				const group = L.layerGroup();
-				const layer = new tool.type(layerLatLng, tool.options);
-				group.addLayer(layer);
-			
-				//Attach any needed tooltip
-				if(tool.tooltipOptions && (tool.toolOptions.allowTooltipOverride == undefined || tool.toolOptions.allowTooltipOverride === true))
-				{
-					let offset = L.point(0,0);
-					if(tool.tooltipOptions.offset)
+				case ToolType.Static:
+					//We need to check for a position override before making our new layer
+					var layerLatLng = e.latlng;
+					if(tool.positionOptions)
 					{
-						offset = L.point(tool.tooltipOptions.offset.x,tool.tooltipOptions.offset.y);
+						layerLatLng = L.latLng(tool.positionOptions.y, tool.positionOptions.x);
 					}
-					
-					layer.bindTooltip(tool.tooltipOptions.text ?? "New Tooltip", { permanent: tool.tooltipOptions.permanent ?? false, direction: tool.tooltipOptions.direction ?? 'right', offset:offset, className: tool.tooltipOptions.className ?? "" });
-				}
-			
-				/*if(tool.type === L.marker)
-				{
-					layer.bindTooltip("Giga Label", { permanent: true, direction: 'bottom', offset:L.point(0, 25) });
-				}*/
 				
-				if(tool.toolOptions.hasMiddleDot === true)
-				{
-					group.addLayer(L.circle(e.latlng, { radius: 100, color: tool.options.color, interactive: false, pane: "draw"}));
-				}
+					//Create our layer
+					const group = L.layerGroup();
+					const layer = new tool.type(layerLatLng, tool.options);
+					group.addLayer(layer);
 			
-				document.dispatchEvent(new CustomEvent("DrawPanel:LayerUpdate", { detail: {updateType:"NewLayer", isStaticLayer: true, layers:group} }));
-			}
-			else
-			{
-				if(this._ActiveDynObj)
-				{
-					//Update existing dynamic shape
-					this._ActiveDynObj.path.push([e.latlng.lat, e.latlng.lng]);
-					this._ActiveDynObj.layer.setLatLngs(this._ActiveDynObj.path);
-					console.log("Added point " + e.latlng + " to _ActiveDynObj");
-				}
-				else
-				{
-					//Creating new dynamic shape
-					const activePath = [[e.latlng.lat, e.latlng.lng]];
-					const layer = new tool.type(activePath, tool.options);
-					this._ActiveDynObj = {path:activePath, layer:layer};
+					//Attach any needed tooltip
+					if(tool.tooltipOptions && (tool.toolOptions.allowTooltipOverride == undefined || tool.toolOptions.allowTooltipOverride === true))
+					{
+						let offset = L.point(0,0);
+						if(tool.tooltipOptions.offset)
+						{
+							offset = L.point(tool.tooltipOptions.offset.x,tool.tooltipOptions.offset.y);
+						}
 					
-					layer.addTo(this._map);
+						layer.bindTooltip(tool.tooltipOptions.text ?? "New Tooltip", { permanent: tool.tooltipOptions.permanent ?? false, direction: tool.tooltipOptions.direction ?? 'right', offset:offset, className: tool.tooltipOptions.className ?? "" });
+					}
+			
+					/*if(tool.type === L.marker)
+					{
+						layer.bindTooltip("Giga Label", { permanent: true, direction: 'bottom', offset:L.point(0, 25) });
+					}*/
+				
+					if(tool.toolOptions.hasMiddleDot === true)
+					{
+						group.addLayer(L.circle(e.latlng, { radius: 100, color: tool.options.color, interactive: false, pane: "draw"}));
+					}
+			
+					document.dispatchEvent(new CustomEvent("DrawPanel:LayerUpdate", { detail: {updateType:"NewLayer", layers:group} }));
+				break;
+				case ToolType.Spline:
+				case ToolType.Rect:
+					if(this._ActiveDynObj)
+					{
+						//Rectangle polygons need some extra work to handle the next click as the corners and not a path
+						if(tool.toolOptions.type === ToolType.Rect)
+						{
+							if(this._ActiveDynObj.path.length >= 4)
+								break;
+							
+							const bounds = L.latLngBounds(this._ActiveDynObj.path[0], [e.latlng.lat, e.latlng.lng]);
+							const rectPath = [bounds.getNorthWest(),bounds.getNorthEast(),bounds.getSouthEast(),bounds.getSouthWest()];
+							this._ActiveDynObj.path = rectPath;
+							this._ActiveDynObj.layer.setLatLngs(rectPath);
+							break;
+						}
+							
+						//Update normal spline type shapes
+						this._ActiveDynObj.path.push([e.latlng.lat, e.latlng.lng]);
+						this._ActiveDynObj.layer.setLatLngs(this._ActiveDynObj.path);
+						console.log("Added point " + e.latlng + " to _ActiveDynObj");
+					}
+					else
+					{
+						//Creating new "dynamic" shape
+						const activePath = [[e.latlng.lat, e.latlng.lng]];
+						const layer = new tool.type(activePath, tool.options);
+						this._ActiveDynObj = {path:activePath, layer:layer};
+						layer.addTo(this._map);
 					
-					//Note Dynamic layers events are fired when the shape is commited to the map (right click/change tool, ect)
-				}
+						//Note Dynamic layers events are fired when the shape is commited to the map (right click/change tool, ect)
+					}
+				break;
+				default:
+					//Unsupported value
+				break;
 			}
 		}
 	},
@@ -283,7 +307,7 @@ L.Control.DrawPanel = L.Control.extend({
 		//Send our finished shape (with at least two points) to our map
 		if(this._ActiveDynObj && this._ActiveDynObj.path.length > 1)
 		{
-			document.dispatchEvent(new CustomEvent("DrawPanel:LayerUpdate", { detail: {updateType:"NewLayer", isStaticLayer: true, layers:this._ActiveDynObj.layer} }));
+			document.dispatchEvent(new CustomEvent("DrawPanel:LayerUpdate", { detail: {updateType:"NewLayer", layers:this._ActiveDynObj.layer} }));
 		}
 		
 		this._ActiveDynObj = null;
@@ -600,17 +624,34 @@ L.Control.DrawPanel = L.Control.extend({
 				}
 			}*/
 			
-			//Bind/replace options from the template with any input any options from the toolbox inputs
+			//Bind/replace options from the template with any input options from the toolbox inputs
 			if(this._ToolboxInputElements.TooltipEle)
 			{
-				const tooltipObj = {text:undefined, permanent: true, direction:'center', offset:{x:0,y:-50}, className: "draw-panel-marker-tooltip"};
-				tooltipObj.text = this._ToolboxInputElements.TooltipEle.value != "" ? this._ToolboxInputElements.TooltipEle.value : (toolboxObj.data.tooltipOptions ? (toolboxObj.data.tooltipOptions.text ?? "") :undefined);
+				const tooltipObj = {isTemp:false, text:undefined, permanent: true, direction:'center', offset:{x:0,y:-50}, className: "draw-panel-marker-tooltip"};
 				
+				//Process our text
+				if(this._ToolboxInputElements.TooltipEle.value == "")
+				{
+					//This could be temp text set before, or actual static text
+					if(toolboxObj.data.tooltipOptions && toolboxObj.data.tooltipOptions.text)
+						tooltipObj.text = toolboxObj.data.tooltipOptions.text;
+					
+					//if this was temp text (text set via the input before) then we want to clear it
+					if(toolboxObj.data.tooltipOptions && toolboxObj.data.tooltipOptions.isTemp)
+						tooltipObj.text = undefined;
+				}
+				else
+				{
+					tooltipObj.text = this._ToolboxInputElements.TooltipEle.value;
+					tooltipObj.isTemp = true;
+				}
+
+				//Process our offset
 				if(toolboxObj.data.tooltipOptions)
 					tooltipObj.offset = toolboxObj.data.tooltipOptions.offset ? {x:toolboxObj.data.tooltipOptions.offset.x ?? 0,y:toolboxObj.data.tooltipOptions.offset.y ?? -50} : {x:0,y:-50}; 
 				
 				//If we have static tooltip set with text or if we have options text set we want tooltips
-				if(toolboxObj.data.tooltipOptions && toolboxObj.data.tooltipOptions.text || this._ToolboxInputElements.TooltipEle.value != "")
+				if(tooltipObj.text || this._ToolboxInputElements.TooltipEle.value != "")
 				{
 					toolboxObj.data.tooltipOptions = tooltipObj;
 				}
@@ -674,7 +715,7 @@ L.Control.DrawPanel = L.Control.extend({
 		}
 		
 		//Create a new map preview cursor for our current tool (if it has one)
-		if(this._ActiveDrawTool.tool.toolOptions.isStatic === true)
+		if(this._ActiveDrawTool.tool.toolOptions.type === ToolType.Static)
 		{
 			const tool = this._ActiveDrawTool.tool;
 
