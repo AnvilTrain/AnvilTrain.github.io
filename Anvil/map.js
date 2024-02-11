@@ -1,10 +1,10 @@
 var leafMap = {
-	map: null,
-	groupLayerController: null,
-	infoControl: null,
-	uiController: null,
-	mapSettings: null,
-	mapOptions: null,
+	map: undefined,
+	groupLayerController: undefined,
+	infoControl: undefined,
+	uiController: undefined,
+	mapSettings: undefined,
+	mapOptions: undefined,
 	init: function(){
 		console.log("Init leafMap");
 		
@@ -20,7 +20,7 @@ var leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.5.2 | Game 62910 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.5.3 | Game 63034 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -206,6 +206,10 @@ var leafMap = {
 		let mapTreeOverlayImg = L.imageOverlay(mapSettings.MapTreeImage, TreeOverlayBounds, {interactive:false}).addTo(this.map);
 		this.groupLayerController.addOverlay(mapTreeOverlayImg, "Map Trees", "General");
 		
+		//Mod border img test
+		//let mapModBorder = L.imageOverlay("./img/modborder.png", mapSettings.MapBounds, {interactive:false});
+		//this.groupLayerController.addOverlay(mapModBorder, "Mod Borders", "Borders");
+		
 		//Create our grid layer and add it to our layer controller
 		if(this.infoControl)
 		{
@@ -245,10 +249,19 @@ var leafMap = {
 	
 		let mapGroups = this.groupMapObjects(Calligo01GroupData, Calligo01MapData);
 		
+		let hasDoneBorderDebug = false;
+		
 		for(let i =0; i < mapGroups.length; i++)
-		{
+		{			
 			let mapGrp = mapGroups[i];
 			let heatData = [];
+			
+			//Skip certian map groups
+			if(this.mapSettings.DebugFlags && this.mapSettings.DebugFlags.DebugRegionBorders === false)
+			{
+				if(mapGrp.GroupName === "Borders Debug")
+					continue;
+			}
 			
 			//Attempt to find a matching layer for this map group
 			this.map.eachLayer(function(layer){
@@ -292,63 +305,26 @@ var leafMap = {
 					popupText += `Obj-Name: ${worldObj.Name}<br>Map Pos: ${[mapPos.Y, mapPos.X]}`;
 				
 				//Actually create the shapes
+				if(mapGrp.GroupName === "Borders Debug" && hasDoneBorderDebug === false)
+				{
+					//TODO needs automation via the data
+					if(this.mapSettings.DebugFlags && this.mapSettings.DebugFlags.DebugRegionBorders === true)
+					{		
+						//Y: 390840, X: 183160 - Parent
+						//Y: 1302678.6, X: 794042.75 - Extents
+						const halfHeight = 1302678.6 / 2;
+						const halfWidth = 794042.75 / 2;
+						let bounds = L.rectangle([[390840-halfHeight,183160-halfWidth],[390840+halfHeight, 183160+halfWidth]], {color: 'blue', weight: 1, fillOpacity: 0 , interactive:false});
+						shapes.push(bounds);
+						hasDoneBorderDebug = true;
+					}
+				}
+				
 				if (worldObj.Name.includes("BPMapBorderActor"))
 				{
 					//TODO this should be moved as it now has nothing to do with the worldObj itself
-					//Also cursed magic numbers for testing
-					const RegionsHeight = 3;
-					const RegionsWidth = 2;
-					const BorderSize = 9200;
-					const MagicBorders = L.latLngBounds([1094952.1,-236735.72],[-180957.83,603644.3]);//Based of the map border obj positions
-
-					//Cursed
-					const manualWidth = MagicBorders.getEast() - MagicBorders.getWest();
-					const manualHeight = MagicBorders.getNorth() - MagicBorders.getSouth();
-					
-					const RegionWidth = manualWidth / RegionsWidth; //mapWidth
-					const RegionHeight = manualHeight / RegionsHeight; //mapHeight
-
-					const MapTop =  MagicBorders.getNorth(); //this.mapSettings.MapBounds.getNorth();
-					const MapLeft = MagicBorders.getWest();//this.mapSettings.MapBounds.getWest();
-					const MapBottom = -124191.83; //MagicBorders.getSouth(); //Manual replace for border resize but we want to keep hoz borders the same
-					
-					//Look! More magic numbers!
-					const MapTopOffset = MapTop - 64000; //Used by horizontal borders for offset from the top
-					const MapLeftOffset = MapLeft - 0//15000;//Used by vertical borders for offset from the left
-					
-					//Vertical Region Borders
-					for(let rH = 1; rH <= RegionsHeight; rH++)
-					{
-						for(let rW = 1; rW <= RegionsWidth-1; rW++)
-						{
-							//Remember its Y,X
-							const TopLeft = [MapTop - (RegionHeight * (rH-1)), MapLeftOffset + ((RegionWidth * rW) - (BorderSize/2))];
-							const BottomRight = [Math.max(MapTop - (RegionHeight * (rH)),MapBottom), MapLeftOffset + ((RegionWidth * rW) + (BorderSize/2))];
-							const bounds = [TopLeft, BottomRight];
-							
-							console.log("Bottom right ", BottomRight, MapBottom);
-							
-							let col = "#ff7800" //`#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase()}`;
-							
-							shapes.push(L.rectangle(bounds, { color: col, weight: 2 }).bindPopup(popupText, popupOptions));
-						}
-					}
-					
-					//Horizontal Region Borders
-					for(let rH = 1; rH <= RegionsHeight - 1; rH++)
-					{
-						for(let rW = 1; rW <= RegionsWidth; rW++)
-						{
-							//Remember its Y,X
-							const TopLeft = [MapTopOffset - ((RegionHeight * rH) - (BorderSize/2)), MapLeft + (RegionWidth * (rW - 1))];
-							const BottomRight = [MapTopOffset - (RegionHeight * rH) - (BorderSize/2), MapLeft + (RegionWidth * rW)];
-							const bounds = [TopLeft, BottomRight];
-							
-							let col = "#ff7800"; //`#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase()}`;
-							
-							shapes.push(L.rectangle(bounds, { color: col, weight: 2 }).bindPopup(popupText, popupOptions));
-						}
-					}
+					//Also assumes there will always be a single one of these objects
+					this._insertMapBorders(shapes, popupOptions);
 				}
 				else if (worldObj.Name.includes("BorderNorth"))
 				{
@@ -478,7 +454,7 @@ var leafMap = {
 					group.addTo(this.map);
 				}
 				
-				if(this.mapSettings.DebugDoHeatMap && heatData.length > 0)
+				if(this.mapSettings.DebugFlags && this.mapSettings.DebugFlags.DebugDoHeatMap === true && heatData.length > 0)
 				{
 					//Good heat values for trees
 					//TODO tweak values for other object types
@@ -499,6 +475,61 @@ var leafMap = {
 		}
 	
 		console.log("Finished world obj mapping");
+	},
+	_insertMapBorders: function(OutputShapes, PopupOptions)
+	{
+		const RegionsHeight = this.mapSettings.RegionBorders.Height;
+		const RegionsWidth = this.mapSettings.RegionBorders.Width;
+		const BorderSize = this.mapSettings.RegionBorders.BorderSize;
+		const BorderBounds = this.mapSettings.RegionBorders.Bounds ?? this.mapSettings.MapBounds;
+
+		//Cursed
+		const RegionWidth = (BorderBounds.getEast() - BorderBounds.getWest()) / RegionsWidth;
+		const RegionHeight = (BorderBounds.getNorth() - BorderBounds.getSouth()) / RegionsHeight;
+
+		const MapTop = BorderBounds.getNorth();
+		const MapLeft = BorderBounds.getWest();
+		const MapBottom = this.mapSettings.RegionBorders.BoundsBottomOverride ?? BorderBounds.getSouth();//Manual replace for border resize but we want to keep hoz borders the same
+					
+		//Vertical Region Borders
+		for(let rH = 1; rH <= RegionsHeight; rH++)
+		{
+			for(let rW = 1; rW <= RegionsWidth-1; rW++)
+			{
+				//Used by vertical borders for offset from the left
+				const LeftOffset = this.mapSettings.RegionBorders.OffsetsX ? this.mapSettings.RegionBorders.OffsetsX[rW-1] : 0;
+				
+				//Remember its Y,X
+				const TopLeft = [MapTop - (RegionHeight * (rH-1)), (MapLeft - LeftOffset) + ((RegionWidth * rW) - (BorderSize/2))];
+				const BottomRight = [Math.max(MapTop - (RegionHeight * (rH)),MapBottom), (MapLeft - LeftOffset) + ((RegionWidth * rW) + (BorderSize/2))];
+				const bounds = [TopLeft, BottomRight];
+							
+				//console.log("Bottom right ", BottomRight, MapBottom);
+							
+				let col = "#ff7800" //`#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase()}`;
+							
+				OutputShapes.push(L.rectangle(bounds, { color: col, weight: 2 }).bindPopup("Region Border", PopupOptions));
+			}
+		}
+					
+		//Horizontal Region Borders
+		for(let rH = 1; rH <= RegionsHeight - 1; rH++)
+		{
+			for(let rW = 1; rW <= RegionsWidth; rW++)
+			{
+				//Used by horizontal borders for offset from the top
+				const TopOffset = this.mapSettings.RegionBorders.OffsetsY ? this.mapSettings.RegionBorders.OffsetsY[rH-1] : 0;
+				
+				//Remember its Y,X
+				const TopLeft = [(MapTop - TopOffset) - ((RegionHeight * rH) - (BorderSize/2)), MapLeft + (RegionWidth * (rW - 1))];
+				const BottomRight = [(MapTop - TopOffset) - (RegionHeight * rH) - (BorderSize/2), MapLeft + (RegionWidth * rW)];
+				const bounds = [TopLeft, BottomRight];
+							
+				let col = "#ff7800"; //`#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0').toUpperCase()}`;
+							
+				OutputShapes.push(L.rectangle(bounds, { color: col, weight: 2 }).bindPopup("Region Border", PopupOptions));
+			}
+		}
 	},
 	/*Attach map objects onto their parent group via GroupID*/
 	groupMapObjects: function(groupObjs, mapObjs)
@@ -625,7 +656,23 @@ class MapSettings
 	GridWidth = 20;
 	GridHeight = 30;
 	GridMarkers = true;
-	DebugDoHeatMap = false;
+	BorderHalfH = 1302678.6 / 2;
+	BorderHalfW = 794042.75 / 2;
+	RegionBorders = 
+	{
+		Height:3, 
+		Width:2,
+		BorderSize: 9600,
+		Bounds: L.latLngBounds([[390840-this.BorderHalfH,183160-this.BorderHalfW],[390840+this.BorderHalfH, 183160+this.BorderHalfW]]), //Bounds based of the map border obj positions
+		//BoundsBottomOverride: -124191.83, 
+		//OffsetsX:[1000], 
+		//OffsetsY:[61500,71000] //Each array entry aligns with each border
+	};
+	DebugFlags =
+	{
+		DebugRegionBorders: false,
+		DebugDoHeatMap: false
+	}
 	constructor() 
 	{
 		this.PosYOffset = (this.MapHeight / 2) -  Math.abs(this.YOriginOffset);
@@ -637,6 +684,11 @@ class MapSettings
 leafMap.init();
 
 /*Misc Functions and classes*/
+
+function RelativePos(v1, v2)
+{
+	return [v1[0] + v2[0], v1[1] + v2[1]];
+}
 
 //Convert a game map position to a leaflet map world position
 function GamePosToMapPos(pos)
