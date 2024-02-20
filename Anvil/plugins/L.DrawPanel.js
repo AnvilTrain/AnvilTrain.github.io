@@ -245,7 +245,7 @@ L.Control.DrawPanel = L.Control.extend({
 				
 					if(tool.toolOptions.hasMiddleDot === true)
 					{
-						group.addLayer(L.circle(e.latlng, { radius: 100, color: tool.options.color, interactive: false, pane: "draw"}));
+						group.addLayer(L.circle(layerLatLng, { radius: 100, color: tool.options.color, interactive: false, pane: "draw"}));
 					}
 			
 					document.dispatchEvent(new CustomEvent("DrawPanel:LayerUpdate", { detail: {updateType:"NewLayer", layers:group} }));

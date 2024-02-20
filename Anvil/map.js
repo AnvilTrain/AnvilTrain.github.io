@@ -1,4 +1,4 @@
-var leafMap = {
+const leafMap = {
 	map: undefined,
 	groupLayerController: undefined,
 	infoControl: undefined,
@@ -20,7 +20,7 @@ var leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.5.3 | Game 63034 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.6.0 | Game 63528 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -118,10 +118,16 @@ var leafMap = {
 	/*Define the draw tools to be used by the draw panel*/
 	getDrawTools: function()
 	{
-		const toolbox = {};
-		toolbox.tools = [];
+		const toolbox = {tools:[]};
 		
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "TownHall Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Homestead Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 64000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 9600, interactive: false }});
+			
+		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Core 20 Pop", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 6000, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Core 50 Pop", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 9000, interactive: false }});
+		
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Old TownHall Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
+
 		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Large Camp Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 5400, interactive: false }});
 		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Pump No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 8000, interactive: false }});
 		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Well No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 4000, interactive: false }});
@@ -132,7 +138,7 @@ var leafMap = {
 		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T2 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 15000, interactive: false }});
 		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T3 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 20000, interactive: false }});
 		
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Storm Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 120000, interactive: false }});
+		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Storm Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 120000, interactive: false }});
 		
 		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Polygon Tool", type: ToolType.Spline }, options: { color:'red', interactive: false }});
 		toolbox.tools.push({ type:L.polyline, toolOptions:{ name: "Line Tool", type: ToolType.Spline }, options: { color:'red', interactive: false }});
@@ -181,6 +187,10 @@ var leafMap = {
 		tooltipOptions:{offset:{y:-42}}, 
 		options: { interactive: false }});
 
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Homestead", type: ToolType.Static }, 
+		iconOptions:{iconUrl: "./img/icons/IconHomestead.png", size: 64}, 
+		tooltipOptions:{offset:{y:-42}}, 
+		options: { interactive: false }});
 		//Foxhole region testing
 		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Foxhole Hex", type: true, hasMiddleDot: true }, options: { color:'red', radius: 219700, interactive: false }});
 		//toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant Hex Img", type: true }, iconOptions:{iconUrl: "./img/FoxholeRegion.png", size: 218}, options: { interactive: false }});
@@ -575,6 +585,8 @@ var leafMap = {
 	}
 };
 
+/*Currently this is an old and awkward interface between the map, the group layer controller, and the DrawPanel plugin*/
+/*TODO Refactor*/
 class UIInterfaceController
 {
 	addShapeToDrawLayer(shape)
