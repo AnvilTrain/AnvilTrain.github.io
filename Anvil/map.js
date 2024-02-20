@@ -20,7 +20,7 @@ const leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.6.0 | Game 63528 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.6.1 | Game 63528 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -121,7 +121,7 @@ const leafMap = {
 		const toolbox = {tools:[]};
 		
 		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Homestead Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 64000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 9600, interactive: false }});
+		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 4800, interactive: false }});
 			
 		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Core 20 Pop", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 6000, interactive: false }});
 		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Core 50 Pop", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 9000, interactive: false }});
