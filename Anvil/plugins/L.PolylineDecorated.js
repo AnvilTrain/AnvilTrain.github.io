@@ -152,7 +152,17 @@ L.PolylineRuler = L.Polyline.extend({
 				dir = "right";
 			}
 			
-			this.bindTooltip(`${this._formatNumber(distance.toFixed(2))} meters`, { permanent: true, direction: dir }).openTooltip();
+			//Display travel time if a unit rate is set
+			let travelTimeString;
+			if(this.options.doTravelTime && this.options.doTravelTime === true && this.options.travelTimeUnit && this.options.travelTimeUnit > 0)
+			{
+				const SecTotal = (distance)/this.options.travelTimeUnit;
+				const Mins = Math.floor(SecTotal / 60);
+				const RemSec = SecTotal % 60;
+				travelTimeString = SecTotal > 59 ? `${Mins} Minutes, ${RemSec.toFixed(0)} Seconds` : `${SecTotal.toFixed(2)} Seconds`;
+			}
+			
+			this.bindTooltip(`${this.options.doTravelTime?"Dis: ":""}${this._formatNumber((distance/100).toFixed(2))} meters${travelTimeString ? `<br>${this.options.travelTimeTerm?this.options.travelTimeTerm:"Duration"}:${travelTimeString}`:""}`, { permanent: true, direction: dir }).openTooltip();
 		}
 	},
 	_getLength: function()
@@ -182,12 +192,6 @@ L.PolylineRuler = L.Polyline.extend({
 				distance += (latlngs[i].distanceTo(latlngs[i + 1])); //Uses some earth pi BS
 			}
         }
-		
-		//Convert to meters. (TODO Remove hard coded division)
-		if(distance > 0)
-		{
-			return distance / 100;
-		}
 		
         return distance;
 	},
@@ -244,9 +248,9 @@ L.positionMarker = function (latlng, options) {
 };
 
 /*
-* Composite shape (Shape with other shapes attached to a single LayerGroup)
+* Composite circle (Circle with other layers attached)
 */
-L.CompositeShape = L.Circle.extend({
+L.CompositeCircle = L.Circle.extend({
 	initialize: function (latlng, options)
 	{
 		//Default leaflet circle stuff
@@ -267,16 +271,23 @@ L.CompositeShape = L.Circle.extend({
 		this._map = map;
 		L.Circle.prototype.onAdd.call(this, map);
 			
-		//Load all our options shapes onto the map
-		if(this.options && this.options.compositeOptions)
+		//Load all our options layers onto the map
+		if(this.options && this.options.compOptions)
 		{
-			if(this.options.compositeOptions.shapes && Array.isArray(this.options.compositeOptions.shapes) && this.options.compositeOptions.shapes.length > 0)
+			const compOptions = this.options.compOptions;
+			if(compOptions.middleDot === true)
 			{
-				const shapes = this.options.compositeOptions.shapes;
-				for(let i =0; i < shapes.length; i++)
+				let dot = new L.Circle(this._latlng, {radius: 100, color:this.options.color, interactive: false }).addTo(this._map);;
+				this.addLayer(dot);
+			}
+			
+			if(compOptions.layers && Array.isArray(compOptions.layers) && compOptions.layers.length > 0)
+			{
+				const layers = compOptions.layers;
+				for(let i =0; i < layers.length; i++)
 				{
-					let compShape = new shapes[i].type(this._latlng, shapes[i].options).addTo(this._map);
-					this.addShape(compShape);
+					let layer = new layers[i].type(this._latlng, layers[i].compOptions).addTo(this._map);
+					this.addLayer(layer);
 				}
 			}
 		}
@@ -298,12 +309,16 @@ L.CompositeShape = L.Circle.extend({
 		L.Circle.prototype.setLatLng.call(this, latlng);
 		this._update();
     },
-	setStyle: function (style) 
+	setStyle: function(style) 
 	{
 		L.Circle.prototype.setStyle.call(this, style);
 		this._update(style);
     },
-	_update: function (input)
+	getBounds: function()
+	{
+		return L.Circle.prototype.getBounds.call(this);
+	},
+	_update: function(input)
 	{
 		if(this._layers)
 		{
@@ -321,13 +336,13 @@ L.CompositeShape = L.Circle.extend({
 			}
 		}
 	},
-	addShape: function (shape) 
+	addLayer: function(layer) 
 	{
-		this._layers.push(shape);
+		this._layers.push(layer);
 	},
 });
 
 
-L.compositeShape = function (latlng, options) {
-    return new L.CompositeShape(latlng, options);
+L.compositeCircle = function (latlng, options) {
+    return new L.CompositeCirle(latlng, options);
 };

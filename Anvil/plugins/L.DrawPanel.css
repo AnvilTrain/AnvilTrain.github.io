@@ -135,21 +135,62 @@
 	cursor:pointer;
 	user-select: none;
 }
+.draw-panel-overlay-menu-content-area
+{
+	display: flex;
+	width: 100%;
+	height: calc(100% - 30px);
+}
 .draw-panel-overlay-menu-content-wrapper
 {
 	display: flex;
-	height: 95%; /*Simple way to stop the content from overflowing*/
-	width: 100%;
+	flex-direction: column;
+	height: 100%;
+	width: 80%;
 }
 .draw-panel-overlay-menu-content
 {
 	display: flex;
 	height: 100%;
-	width: 80%;
+	width: 100%;
 	flex-wrap: wrap;
 	overflow-y: scroll;
 	align-content: flex-start;
 	justify-content: center;
+}
+.draw-panel-overlay-menu-content-tabhead
+{
+	display: flex;
+	align-items: center;
+	width: 100%;
+	height: 35px;
+	background: #2b2b2b;
+}
+.draw-panel-overlay-menu-content-tab
+{
+	height: 10px;
+	background: #1a1a1a;
+	color: white;
+	padding: 10px;
+	border-radius: 10px 10px 0px 0px;
+	cursor: pointer;
+	border: #444 solid 1px;
+	border-bottom: none;
+	user-select: none;
+	margin-top:3px;
+	text-transform: capitalize;
+}
+.draw-panel-overlay-menu-content-tab-disabled
+{
+	height: 9px !important;
+	color: grey !important;
+	background: #333 !important;
+	border-bottom: #444 solid 1px !important;
+}
+.draw-panel-overlay-menu-content-tab:hover
+{
+	background: #515151 !important;
+	color: white !important;
 }
 .draw-panel-overlay-menu-sidebar
 {
@@ -352,14 +393,9 @@
 @media only screen and (max-width: 900px) 
 {
 	/*Draw panel toolbox area*/
-	.draw-panel-overlay-menu-content-wrapper
+	.draw-panel-overlay-menu-content-area
 	{
 		flex-direction: column-reverse;
-	}
-	.draw-panel-overlay-menu-content
-	{
-		height: 80%;
-		width: 100%;
 	}
 	.draw-panel-overlay-menu-sidebar {
 		width: 100%;

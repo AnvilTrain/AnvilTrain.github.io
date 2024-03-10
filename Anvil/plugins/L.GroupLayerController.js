@@ -225,6 +225,43 @@ L.Control.GroupLayerController = L.Control.extend({
 	{
 		this._addLayer(layer, layerName, groupName, false);
     },
+	removeLayer: function(layer)
+	{
+		this._map.removeLayer(layer);
+		
+		//console.log("GLC delete req for", layer._leaflet_id);
+		
+		for(let groupName in this._overlayLayers)
+		{
+			for(let layerID in this._overlayLayers[groupName])
+			{
+				const currentLayer = this._overlayLayers[groupName][layerID];
+				//console.log("Found layer ",currentLayer._leaflet_id, " in ", groupName);
+				
+				//Check if our layer is a LayerGroup or regular layer, layer groups will only be tested top level search, so layers inside layers won't work
+				if(currentLayer instanceof L.LayerGroup)
+				{
+					for(let groupLayerID in currentLayer._layers)
+					{
+						const groupLayer = currentLayer._layers[groupLayerID];
+						if(layer._leaflet_id === groupLayer._leaflet_id)
+						{
+							//console.log("Found group layer ", groupLayer._leaflet_id, " to del");
+							delete this._overlayLayers[groupName][layerID]._layers[groupLayerID];
+						}
+					}
+				}
+				else
+				{
+					if(layer._leaflet_id === currentLayer._leaflet_id)
+					{
+						//console.log("Found base layer ", currentLayer._leaflet_id, " to del");
+						delete this._overlayLayers[groupName][layerID];
+					}
+				}
+			}
+		}
+	},
 	_addLayer: function(layer, layerName, groupName, isBaseLayer)
 	{
 		layer.options.displayName = layerName;
@@ -366,13 +403,12 @@ L.Control.GroupLayerController = L.Control.extend({
 		
 		return menu;
 	},
+	/*Return an object holding all layers inside a given named group*/
 	findLayersByGroupName: function(name)
 	{
 		let layers = this._overlayLayers[name];
 		if(layers)
-		{
 			return layers;
-		}
 		
 		return null;
 	},
@@ -392,6 +428,27 @@ L.Control.GroupLayerController = L.Control.extend({
 			}
 		}
 	},
+	/*Search for a layer matching a given pred, if target layer is a group search sub layers */
+	_searchForLayer(targetLayer, searchLayer)
+	{
+		if (targetLayer === searchLayer) {
+			return searchLayer;
+		}
+		
+		const self = this;
+		if (searchLayer instanceof L.LayerGroup) {
+			let layerMatch = null;
+			searchLayer.eachLayer(function(groupLayer) {
+				layerMatch = self._searchForLayer(targetLayer, groupLayer);
+				if (layerMatch !== null) {
+					return false;
+				}
+			});
+			return layerMatch;
+		}
+		
+		return null;
+    }
 });
 
 L.control.groupLayerController = function(options) {

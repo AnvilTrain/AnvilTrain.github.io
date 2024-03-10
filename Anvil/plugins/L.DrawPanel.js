@@ -3,7 +3,18 @@ const ToolType = Object.freeze({
   Static: 'static',
   Spline: 'spline',
   Rect: 'rect',
+  Eraser: 'erase'
 });
+
+L.DrawPanel = {Event:{}};
+
+L.DrawPanel.Event.BaseEvent = 'DrawPanelEvent';
+L.DrawPanel.Event.NewLayer = 'draw:NewLayer';
+L.DrawPanel.Event.DeletLayer = 'draw:DeleteLayer';
+L.DrawPanel.Event.ClearLayers = 'draw:ClearLayers';
+
+L.DrawPanel.GroupLName = 'DrawLayerGroup';
+L.DrawPanel.DrawPaneName = 'draw';
 
 L.Control.DrawPanel = L.Control.extend({
 	initialize: function (options) 
@@ -208,7 +219,7 @@ L.Control.DrawPanel = L.Control.extend({
 			//Force set a draw pane before we create any layers
 			if(!tool.options.pane)
 			{
-				tool.options.pane = "draw";
+				tool.options.pane = L.DrawPanel.DrawPaneName;
 			}
 			
 			switch(tool.toolOptions.type)
@@ -222,10 +233,15 @@ L.Control.DrawPanel = L.Control.extend({
 					}
 				
 					//Create our layer
-					const group = L.layerGroup();
 					const layer = new tool.type(layerLatLng, tool.options);
-					group.addLayer(layer);
 			
+					//Force a high z-index on maker layers, as they will change z index based on lat pos, and zoom level ugh
+					if(layer instanceof L.Marker)
+					{
+						if(!layer.options.zIndexOffset)
+							layer.options.zIndexOffset = 100000;
+					}
+						
 					//Attach any needed tooltip
 					if(tool.tooltipOptions && (tool.toolOptions.allowTooltipOverride == undefined || tool.toolOptions.allowTooltipOverride === true))
 					{
@@ -238,39 +254,39 @@ L.Control.DrawPanel = L.Control.extend({
 						layer.bindTooltip(tool.tooltipOptions.text ?? "New Tooltip", { permanent: tool.tooltipOptions.permanent ?? false, direction: tool.tooltipOptions.direction ?? 'right', offset:offset, className: tool.tooltipOptions.className ?? "" });
 					}
 			
-					/*if(tool.type === L.marker)
-					{
-						layer.bindTooltip("Giga Label", { permanent: true, direction: 'bottom', offset:L.point(0, 25) });
-					}*/
-				
-					if(tool.toolOptions.hasMiddleDot === true)
-					{
-						group.addLayer(L.circle(layerLatLng, { radius: 100, color: tool.options.color, interactive: false, pane: "draw"}));
-					}
-			
-					document.dispatchEvent(new CustomEvent("DrawPanel:LayerUpdate", { detail: {updateType:"NewLayer", layers:group} }));
+					document.dispatchEvent(new CustomEvent(L.DrawPanel.Event.BaseEvent, { detail: {updateType:L.DrawPanel.Event.NewLayer, layers:layer} }));
 				break;
 				case ToolType.Spline:
 				case ToolType.Rect:
 					if(this._ActiveDynObj)
 					{
+						//Ignore adding point if its the same as the last point
+						const newPoint = [e.latlng.lat, e.latlng.lng];
+						
+						if(this._ActiveDynObj.path.length > 0)
+						{
+							const lastPoint =this._ActiveDynObj.path[this._ActiveDynObj.path.length-1];
+							if(lastPoint[0] == newPoint[0] && lastPoint[1] == newPoint[1])
+								break;
+						}
+
 						//Rectangle polygons need some extra work to handle the next click as the corners and not a path
 						if(tool.toolOptions.type === ToolType.Rect)
 						{
 							if(this._ActiveDynObj.path.length >= 4)
 								break;
 							
-							const bounds = L.latLngBounds(this._ActiveDynObj.path[0], [e.latlng.lat, e.latlng.lng]);
+							const bounds = L.latLngBounds(this._ActiveDynObj.path[0], newPoint);
 							const rectPath = [bounds.getNorthWest(),bounds.getNorthEast(),bounds.getSouthEast(),bounds.getSouthWest()];
 							this._ActiveDynObj.path = rectPath;
 							this._ActiveDynObj.layer.setLatLngs(rectPath);
 							break;
 						}
 							
-						//Update normal spline type shapes
-						this._ActiveDynObj.path.push([e.latlng.lat, e.latlng.lng]);
+						//Update splite to shape;
+						this._ActiveDynObj.path.push(newPoint);
 						this._ActiveDynObj.layer.setLatLngs(this._ActiveDynObj.path);
-						console.log("Added point " + e.latlng + " to _ActiveDynObj");
+						//console.log("Added point " + e.latlng + " to _ActiveDynObj");
 					}
 					else
 					{
@@ -280,11 +296,84 @@ L.Control.DrawPanel = L.Control.extend({
 						this._ActiveDynObj = {path:activePath, layer:layer};
 						layer.addTo(this._map);
 					
-						//Note Dynamic layers events are fired when the shape is commited to the map (right click/change tool, ect)
+						//Note: Dynamic layer 'NewLayer' events are fired when the shape is commited to the map (right click/change tool, ect)
 					}
+				break;
+				case ToolType.Eraser:
+
+					//Scan through layers, find any on the draw pane
+					//Then process via layer type if deletion would be valid
+					let layers = [];
+					parent._map.eachLayer(function (layer) 
+					{
+						const map = parent._map;
+						
+						if(!layer.options || layer.options.pane != L.DrawPanel.DrawPaneName)
+							return;
+						
+						//Cache our marker icon calculations
+						let markerBounds = undefined;
+						if(layer instanceof L.Marker)
+						{
+							let iconRawBounds = layer._icon.getBoundingClientRect();
+							let markerMapPos = layer.getLatLng();
+							let markerLPos = map.latLngToLayerPoint(markerMapPos);
+							
+							let iconSize =  L.point(iconRawBounds.width / 2, iconRawBounds.height / 2);
+							markerBounds = L.bounds(markerLPos.subtract(iconSize), markerLPos.add(iconSize));
+						}
+						
+						//Workout if layer is valid for being removed, depending on type
+						let isValidDel = false;
+						if(layer instanceof L.Polyline && !(layer instanceof L.Polygon || layer instanceof L.Rectangle))
+						{
+							const latlngs = layer.getLatLngs();
+							for (var i = 0; i < latlngs.length - 1; i++) 
+							{
+								var start = latlngs[i];
+								var end = latlngs[i + 1];
+								
+								//Distance in pixels to the line
+								var distance = parent._distanceToLineSegment(map,e.latlng,start,end);
+								if (distance < 10)
+								{
+									isValidDel = true;
+									break;
+								}	
+							}
+						}
+						else if(layer instanceof L.Polygon)
+						{
+							if(parent._isPointInsidePolygon(e.latlng, layer))
+							{
+								isValidDel = true;
+							}
+						}
+						else if(layer instanceof L.Marker)
+						{
+							if(markerBounds && markerBounds.contains(parent._map.latLngToLayerPoint(e.latlng)))
+								isValidDel = true;
+						}
+						else
+						{
+							if(layer.getBounds && layer.getBounds().contains(e.latlng))
+								isValidDel = true;
+						}
+						
+						if (isValidDel === true) 
+							layers.push(layer);
+					});
+				
+					if(layers.length > 0)
+					{
+						//console.log("Eraser layer ", layers);
+						document.dispatchEvent(new CustomEvent(L.DrawPanel.Event.BaseEvent, { detail: {updateType:L.DrawPanel.Event.DeleteLayer, layers:layers} }));
+					}
+						
 				break;
 				default:
 					//Unsupported value
+					console.warn("Unknown draw tool type ", tool.toolOptions.type);
 				break;
 			}
 		}
@@ -305,12 +394,18 @@ L.Control.DrawPanel = L.Control.extend({
 		}
 		
 		//Send our finished shape (with at least two points) to our map
-		if(this._ActiveDynObj && this._ActiveDynObj.path.length > 1)
+		if(this._ActiveDynObj)
 		{
-			document.dispatchEvent(new CustomEvent("DrawPanel:LayerUpdate", { detail: {updateType:"NewLayer", layers:this._ActiveDynObj.layer} }));
+			//Make sure our last active path is the displayed one (remove any temp points);
+			this._ActiveDynObj.layer.setLatLngs(this._ActiveDynObj.path);
+			
+			if(this._ActiveDynObj.path.length > 1)
+				document.dispatchEvent(new CustomEvent(L.DrawPanel.Event.BaseEvent, { detail: {updateType:L.DrawPanel.Event.NewLayer, layers:this._ActiveDynObj.layer} }));
+			else
+				this._map.removeLayer(this._ActiveDynObj.layer);
+			
+			this._ActiveDynObj = null;
 		}
-		
-		this._ActiveDynObj = null;
 	},
 	/*Event fired any time the mouse moves over the map*/
 	_OnMapMouseMove: function(e, parent)
@@ -320,6 +415,36 @@ L.Control.DrawPanel = L.Control.extend({
 			if(this._ActiveCursorObj && this._ActiveCursorObj.setLatLng)
 			{
 				this._ActiveCursorObj.setLatLng(e.latlng);
+			}
+		}
+		
+		//The CPU killer deep copy path array to replace temp path and redraw...
+		if(this._ActiveDynObj)
+		{
+			if(this._ActiveDynObj.path.length > 0)
+			{
+				let previewPath = Array.from(this._ActiveDynObj.path);
+				const newPoint = [e.latlng.lat, e.latlng.lng];
+				const lastPoint = previewPath[previewPath.length-1];
+				
+				//Rect needs some extra help
+				if(parent._ActiveDrawTool.tool.toolOptions.type === ToolType.Rect)
+				{
+					if(this._ActiveDynObj.path.length >= 4)
+						return;
+					
+					//Fun lets redraw the bounds every mouse twitch
+					const bounds = L.latLngBounds(previewPath[0], newPoint);
+					const rectPath = [bounds.getNorthWest(),bounds.getNorthEast(),bounds.getSouthEast(),bounds.getSouthWest()];
+					previewPath = rectPath;
+				}
+				else
+				{
+					//Only applies to spline based dyn shapes
+					previewPath.push(newPoint);
+				}
+
+				this._ActiveDynObj.layer.setLatLngs(previewPath);
 			}
 		}
 	},
@@ -336,6 +461,24 @@ L.Control.DrawPanel = L.Control.extend({
 				{
 					let toolboxItem = this._createToolboxItem(this._ElementPool.toolboxMenuContent, toolsObj.tools[i]);
 					
+					//Check for and create a new tab in the toolbox if needed
+					let hasMatch = false;
+					const tabs = this._ElementPool.toolboxMenuTabHead.querySelectorAll('a');
+					for(let tabID in tabs)
+					{
+						const tabEle = tabs[tabID];
+						
+						if(tabEle.innerText === toolsObj.tools[i].toolOptions.tab )
+						{
+							hasMatch = true;
+							break;
+						}	
+					}
+					
+					if(!hasMatch)
+						this._createToolboxTab(this._ElementPool.toolboxMenuTabHead,toolsObj.tools[i]);
+					
+					
 					//Create a new icon via its iconOptions and attach that to the marker
 					if(toolsObj.tools[i].iconOptions)
 					{
@@ -346,6 +489,22 @@ L.Control.DrawPanel = L.Control.extend({
 					
 					const toolObj = {element: toolboxItem, data: toolsObj.tools[i]};
 					this._ToolboxSlots.push(toolObj);
+				
+					//Tools can be selected by default, default tools will take avaliable slots in order
+					if(toolsObj.tools[i].toolOptions.isDefault === true)
+					{
+						for(let i=0; i < this._DrawSlots.length; i++)
+						{
+							//Template will but null if slot is empty, then manually set tool into slow without making it active
+							if(!this._DrawSlots[i].drawTemplate)
+							{
+								this._DrawSlots[i].drawTemplate = toolObj.data;
+								this._DrawSlots[i].element.innerText = toolObj.data.toolOptions.name;
+								//self._OnSelectDrawTool(this._DrawSlots[i], toolObj);
+								break;
+							}
+						}
+					}
 				
 					toolboxItem.addEventListener('click', function() {
 						self._OnSelectDrawTool(self._SelectingDrawSlot, toolObj);
@@ -379,7 +538,8 @@ L.Control.DrawPanel = L.Control.extend({
 		const panelOpt = 
 		{
 			title: options.panelOptions.title ?? "Unnamed",
-			text: options.panelOptions.title ?? "No Content"
+			text: options.panelOptions.title ?? "No Content",
+			drawSlots: options.panelOptions.drawSlots ?? 5
 		}
 		
 		const drawOpt = 
@@ -467,9 +627,21 @@ L.Control.DrawPanel = L.Control.extend({
 		
 		toolboxMenu.appendChild(toolboxMenuHeader);
 		
-		const toolboxMenuContentWrapper= document.createElement("div");
+		const toolboxMenuContentArea = document.createElement("div");
+		toolboxMenuContentArea.className = "draw-panel-overlay-menu-content-area";
+		toolboxMenu.appendChild(toolboxMenuContentArea);
+		
+		const toolboxMenuContentWrapper = document.createElement("div");
 		toolboxMenuContentWrapper.className = "draw-panel-overlay-menu-content-wrapper";
-		toolboxMenu.appendChild(toolboxMenuContentWrapper);
+		toolboxMenuContentArea.appendChild(toolboxMenuContentWrapper);
+		
+		const toolboxMenuContentTabHead = document.createElement("div");
+		toolboxMenuContentTabHead.className = "draw-panel-overlay-menu-content-tabhead";
+		toolboxMenuContentWrapper.appendChild(toolboxMenuContentTabHead);
+		this._ElementPool.toolboxMenuTabHead = toolboxMenuContentTabHead;
+		
+		//Attach our default 'All' Tab via a fake tool obj
+		this._createToolboxTab(toolboxMenuContentTabHead, {toolOptions:{tab:"All"}}, true);
 		
 		const toolboxMenuContent = document.createElement("div");
 		toolboxMenuContent.className = "draw-panel-overlay-menu-content";
@@ -478,7 +650,7 @@ L.Control.DrawPanel = L.Control.extend({
 		
 		const toolboxMenuSidebar = document.createElement("div");
 		toolboxMenuSidebar.className = "draw-panel-overlay-menu-sidebar";
-		toolboxMenuContentWrapper.appendChild(toolboxMenuSidebar);
+		toolboxMenuContentArea.appendChild(toolboxMenuSidebar);
 		
 		const toolboxMenuSidebarTop = document.createElement("div");
 		toolboxMenuSidebarTop.id = "draw-panel-overlay-menu-sidebar-top";
@@ -560,12 +732,55 @@ L.Control.DrawPanel = L.Control.extend({
 		
 		return toolboxMenuItem;
 	},
+	/*Create the DOM element for a single toolbox tab*/
+	_createToolboxTab: function(parent, tool, isActive = false)
+	{
+		const toolboxTab = document.createElement("a");
+		const disTabClass = "draw-panel-overlay-menu-content-tab-disabled";
+		toolboxTab.innerText = tool.toolOptions.tab;
+		toolboxTab.style.marginLeft = "5px";
+		toolboxTab.className = `draw-panel-overlay-menu-content-tab${!isActive?` ${disTabClass}`:""}`;
+
+		const self = this;
+		toolboxTab.addEventListener('click', function() {
+			if(self._ToolboxSlots)
+			{
+				for(let i = 0; i < self._ToolboxSlots.length; i++)
+				{
+					const slot = self._ToolboxSlots[i];
+					if(slot.data.toolOptions.tab != tool.toolOptions.tab && tool.toolOptions.tab != "All")
+					{
+						slot.element.style.display = "none";
+					}
+					else
+					{
+						slot.element.style.display = "block";
+					}
+				}
+			}
+			
+			//Handle tab active css
+			let tabs = self._ElementPool.toolboxMenuTabHead.querySelectorAll('a');
+			tabs.forEach((tabEle)=>{
+				if(!tabEle.classList.contains(disTabClass))
+					tabEle.classList.add(disTabClass);
+			});
+
+			toolboxTab.classList.remove(disTabClass);
+        });
+		
+		parent.appendChild(toolboxTab);
+	},
 	/*Create the DOM elements for the draw slots*/
 	_setupDrawSlots: function()
 	{
 		const self = this;
 		
-		for(let i = 0; i < 5; i++)
+		let slotCount = this.options.panelOptions.drawSlots;
+		if(!slotCount)
+			slotCount = 5;
+		
+		for(let i = 0; i < slotCount; i++)
 		{
 			let slotEle = document.createElement("a");
 			slotEle.innerHTML = `Slot ${i+1} - Unset`;
@@ -593,9 +808,7 @@ L.Control.DrawPanel = L.Control.extend({
 			{
 				//Block slot click if the slot we clicked is already selected
 				if(this._ActiveDrawTool && this._DrawSlots[i] === this._ActiveDrawTool.drawSlot)
-				{
 					break;
-				}
 				
 				if(!this._DrawSlots[i].drawTemplate || isRightClick === true)
 				{
@@ -608,9 +821,17 @@ L.Control.DrawPanel = L.Control.extend({
 				break;
 			}
 		}
+		
+		//Delete our current dyn shape if you click on a slot with one active
+		if(this._ActiveDynObj)
+		{
+			this._map.removeLayer(this._ActiveDynObj.layer);
+			this._ActiveDynObj = null;
+		}
+		
 	},
 	/*Called when a draw slot is clicked, or (currently) a toolbox item is selected*/
-	_OnSelectDrawTool: function(drawSlotObj, toolboxObj)
+	_OnSelectDrawTool: function(drawSlotObj, toolboxObj, slotActive = true)
 	{
 		if(toolboxObj)
 		{
@@ -767,7 +988,7 @@ L.Control.DrawPanel = L.Control.extend({
 		
 		clearDrawBtn.addEventListener('click', function(e) {
 				e.preventDefault();
-				document.dispatchEvent(new CustomEvent("DrawPanel:LayerClear", { detail: {} }));
+				document.dispatchEvent(new CustomEvent(L.DrawPanel.Event.BaseEvent, { detail: {updateType:L.DrawPanel.Event.ClearLayers} }));
 		});
 		guideClearDiv.appendChild(clearDrawBtn);		
 		
@@ -953,6 +1174,36 @@ L.Control.DrawPanel = L.Control.extend({
 		}
 		
 		return obj;
+	},
+	/*Return the pixel canvas distance from latlng to a line between A and B*/
+	_distanceToLineSegment: function(map, latlng, latlngA, latlngB) {
+
+        const p = map.latLngToLayerPoint(latlng),
+           p1 = map.latLngToLayerPoint(latlngA),
+           p2 = map.latLngToLayerPoint(latlngB);
+
+        return L.LineUtil.pointToSegmentDistance(p, p1, p2);
+    },
+	/*Return bool if latlng point is inside a given polygon, SO 31790344*/
+	_isPointInsidePolygon: function(latLng, poly)
+	{
+		let inside = false;
+		let x = latLng.lat, y = latLng.lng;
+		for (let ii=0; ii<poly.getLatLngs().length; ii++)
+		{
+			let polyPoints = poly.getLatLngs()[ii];
+			for (let i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) 
+			{
+				let xi = polyPoints[i].lat, yi = polyPoints[i].lng;
+				let xj = polyPoints[j].lat, yj = polyPoints[j].lng;
+
+				let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+				if (intersect) 
+					inside = !inside;
+			}
+		}
+
+    return inside;
 	}
 });
 

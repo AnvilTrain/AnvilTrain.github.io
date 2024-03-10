@@ -5,8 +5,23 @@ const leafMap = {
 	uiController: undefined,
 	mapSettings: undefined,
 	mapOptions: undefined,
+	isDataLoaded: false,
 	init: function(){
 		console.log("Init leafMap");
+		
+		//Defer load obj data, process the data when we're ready
+		if (document.readyState === "loading") 
+		{
+			document.addEventListener("DOMContentLoaded", (event) => {
+				if(leafMap.isDataLoaded === false)
+					leafMap.processAnvilData(leafMap.mapSettings.MapHeight, leafMap.mapSettings.MapWidth);
+			});
+		} 
+		else 
+		{
+			if(leafMap.isDataLoaded === false)
+				leafMap.processAnvilData(leafMap.mapSettings.MapHeight, leafMap.mapSettings.MapWidth);
+		}
 		
 		this.map = L.map('leafMap', {
 			crs: L.CRS.Simple,
@@ -20,7 +35,7 @@ const leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.4.6.1 | Game 63528 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.5.0 | Game 63832 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -30,8 +45,7 @@ const leafMap = {
 			}
 		}).addTo(this.map);
 		//L.control.mapOptions({position: 'topright', text: 'Coming Soon!' }).addTo(this.map);
-		
-		this.uiController = new UIInterfaceController(this.map);
+
 		this.mapSettings = new MapSettings();
 		
 		//Check the info panel to see other default options
@@ -81,27 +95,140 @@ const leafMap = {
 			position: 'topleft',
 			useColoris: true,
 			panelOptions: {
-				title: "Draw"
+				title: "Draw",
+				drawSlots: 8
 			},
 			drawOptions: {
 				defaultColour: 'red'
 			}
 		}).addTo(this.map);
 		
-		//Subscribe to new draw layer events
+		//Subscribe to draw layer events
 		const self = this;
-		document.addEventListener("DrawPanel:LayerUpdate",(event) => {
+		const DrawGroupParent = "Custom Drawing";
+		const DrawGroupName = "Draw";
+		document.addEventListener(L.DrawPanel.Event.BaseEvent,(event) => {
 			const eventObj = event.detail;
 			
-			if(eventObj.updateType = "NewLayer")
+			switch(eventObj.updateType)
 			{
-				self.uiController.addShapeToDrawLayer(eventObj.layers);
+				case L.DrawPanel.Event.NewLayer:
+					const layer = eventObj.layers;
+					
+					let drawLayer = self.groupLayerController.findFirstLayerInGroup(DrawGroupName);
+					if(drawLayer)
+					{
+						//Force toggle the draw layer if its hidden
+						if(drawLayer.control && !drawLayer.control.checked)
+						{
+							drawLayer.control.click();
+						}
+				
+						drawLayer.addLayer(layer);
+					}
+					else
+					{
+						let drawGroup = L.layerGroup();
+						drawGroup.tag = L.DrawPanel.GroupLName;
+						drawGroup.addLayer(layer);
+						drawGroup.addTo(self.map);
+			
+						self.groupLayerController.addOverlay(drawGroup, DrawGroupParent, DrawGroupName);
+					}
+					
+					//Debug for layer placement (Needs to happen after the layer is on the map)
+					if(self.mapSettings.DebugFlags && self.mapSettings.DebugFlags.DebugDrawLayerBounds === true)
+					{
+						
+						
+						
+						if(layer instanceof L.LayerGroup)
+						{
+							//Our layer is inside a layer group
+							for(let layerID in layer._layers)
+							{
+								var subLayer = layer._layers[layerID];
+								if(subLayer instanceof L.Marker)
+								{
+									if(!subLayer._icon)
+										continue;
+								
+									let iconRawBounds = subLayer._icon.getBoundingClientRect();
+									let markerMapPos = subLayer.getLatLng();
+									let markerLPos = self.map.latLngToLayerPoint(markerMapPos);
+							
+									let iconSize =  L.point( iconRawBounds.width/ 2, iconRawBounds.height/ 2);
+									let markerBounds = L.bounds(markerLPos.subtract(iconSize), markerLPos.add(iconSize));
+							
+									let mapBounds = L.latLngBounds(self.map.layerPointToLatLng(markerBounds.min), self.map.layerPointToLatLng(markerBounds.max));
+									L.rectangle(mapBounds, {color: 'blue', weight: 1, fillOpacity: 0, interactive:false}).addTo(self.map);
+								}
+								else
+								{
+									if(subLayer.getBounds)
+										L.rectangle(layer.getBounds(), {color: 'blue', weight: 1, fillOpacity: 0, interactive:false}).addTo(self.map);
+								}
+							}
+						}
+						else
+						{
+							//Not in layer group, is standalone layer
+							if(layer instanceof L.Marker)
+							{
+								if(!layer._icon)
+									return;
+								
+								let iconRawBounds = layer._icon.getBoundingClientRect();
+								let markerMapPos = layer.getLatLng();
+								let markerLPos = self.map.latLngToLayerPoint(markerMapPos);
+							
+								let iconSize =  L.point( iconRawBounds.width/ 2, iconRawBounds.height/ 2);
+								let markerBounds = L.bounds(markerLPos.subtract(iconSize), markerLPos.add(iconSize));
+							
+								let mapBounds = L.latLngBounds(self.map.layerPointToLatLng(markerBounds.min), self.map.layerPointToLatLng(markerBounds.max));
+								L.rectangle(mapBounds, {color: 'blue', weight: 1, fillOpacity: 0, interactive:false}).addTo(self.map);
+							}
+							else
+							{
+								if(layer.getBounds)
+									L.rectangle(layer.getBounds(), {color: 'blue', weight: 1, fillOpacity: 0, interactive:false}).addTo(self.map);
+							}
+						}
+					}
+
+				break;
+				case L.DrawPanel.Event.DeleteLayer:
+					if(eventObj.layers && eventObj.layers.length > 0)
+					{
+						for(let i = 0; i < eventObj.layers.length; i++)
+						{
+							//TODO check if the layer we're deleting is in a group layer which is now empty, or would be empty after delete, and delete that group too
+							self.groupLayerController.removeLayer(eventObj.layers[i]);
+						}
+					}
+				break;
+			case L.DrawPanel.Event.ClearLayers:
+				let drawGroupParent = leafMap.groupLayerController.findLayersByGroupName(DrawGroupName);
+				if(drawGroupParent)
+				{
+					for(const layerId in drawGroupParent)
+					{
+						let drawLayer = drawGroupParent[layerId];
+						if(drawLayer && drawLayer instanceof L.LayerGroup)
+						{
+							if(drawLayer.control && drawLayer.control.checked === true)
+							{
+								console.log("Clearing draw layer", drawLayer._leaflet_id);
+								drawLayer.clearLayers();
+							}
+						}
+					}
+				}
+			
+			break;
+			default:
+				console.log("Unknown DrawPanel:LayerUpdate " + eventObj.updateType);
 			}
-		});
-		document.addEventListener("DrawPanel:LayerClear",(event) => 
-		{
-			const eventObj = event.detail;
-			self.uiController.clearDrawLayer();
 		});
 		
 		//Bind the tools/shapes we want in the draw menu to the control
@@ -109,7 +236,6 @@ const leafMap = {
 		
 		console.log("Found map settings " + this.mapSettings.MapHeight + " x " + this.mapSettings.MapWidth);
 		this.loadAnvilSettings(this.mapSettings);
-		this.processAnvilData(this.mapSettings.MapHeight, this.mapSettings.MapWidth);
 		
 		//Manual added river fording lines
 		this.insertMapCrossingPaths();
@@ -120,79 +246,82 @@ const leafMap = {
 	{
 		const toolbox = {tools:[]};
 		
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Homestead Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 64000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 4800, interactive: false }});
-			
-		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Core 20 Pop", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 6000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Town Core 50 Pop", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 9000, interactive: false }});
+		toolbox.tools.push({ type: null, toolOptions:{ name: "Inks Eraser", type: ToolType.Eraser, tab: DrawTabType.Tool, isDefault: true }, options: { }});
 		
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Old TownHall Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 64000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4800, interactive: false, compOptions:{middleDot: true}} });
 
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Large Camp Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 5400, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Pump No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 8000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Well No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 4000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Water Wheel No-Build Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 4000, interactive: false }});
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 0 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4000, interactive: false, compOptions:{middleDot: true}} });
+		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 20 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 6000, interactive: false }});
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 50 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 9000, interactive: false, compOptions:{middleDot: true}} });
+
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Old TownHall Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
+
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Large Camp Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 5400, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Pump No-Build Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 8000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Well No-Build Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Water Wheel No-Build Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4000, interactive: false, compOptions:{middleDot: true}} });
 		
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T1 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 12000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T2 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 15000, interactive: false }});
-		toolbox.tools.push({ type:L.circle, toolOptions:{ name: "T3 Town Beacon Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 20000, interactive: false }});
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "T1 Town Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "T2 Town Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 15000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "T3 Town Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 20000, interactive: false, compOptions:{middleDot: true}} });
 		
-		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Storm Radius", type: ToolType.Static, hasMiddleDot: true }, options: { color:'red', radius: 120000, interactive: false }});
+		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Storm Radius", type: ToolType.Static }, options: { color:'red', radius: 120000, interactive: false }});
 		
-		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Polygon Tool", type: ToolType.Spline }, options: { color:'red', interactive: false }});
-		toolbox.tools.push({ type:L.polyline, toolOptions:{ name: "Line Tool", type: ToolType.Spline }, options: { color:'red', interactive: false }});
-		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Rect Tool", type: ToolType.Rect }, options: { color:'red', interactive: false }});
+		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Polygon Tool", type: ToolType.Spline, tab: DrawTabType.Tool }, options: { color:'red', interactive: false }});
+		toolbox.tools.push({ type:L.polyline, toolOptions:{ name: "Line Tool", type: ToolType.Spline, tab: DrawTabType.Tool }, options: { color:'red', interactive: false }});
+		toolbox.tools.push({ type:L.polygon, toolOptions:{ name: "Rect Tool", type: ToolType.Rect, tab: DrawTabType.Tool }, options: { color:'red', interactive: false }});
 		
 		//This needs a symbol set but we current set it inside the init for the custom type
-		toolbox.tools.push({ type:L.polylineDecorated, toolOptions:{ name: "Arrow Line", type: ToolType.Spline },
+		toolbox.tools.push({ type:L.polylineDecorated, toolOptions:{ name: "Arrow Line", type: ToolType.Spline, tab: DrawTabType.Tool },
 		options: {color:'red', interactive: false, decorationOptions:{ patterns: [{ offset: 25, repeat: 25, symbolObj:{type:L.Symbol.arrowHead, options:{ pixelSize: 15, pathOptions: { stroke: true, color: 'red', interactive: false} }} }] }}});
 		
-		toolbox.tools.push({ type:L.PolylineRuler, toolOptions:{ name: "Ruler", type: ToolType.Spline }, options: {color:'red', dashArray: '10, 10', interactive: false }});
-		toolbox.tools.push({ type: L.positionMarker, toolOptions:{ name: "Position Pin", type: ToolType.Static, allowTooltipOverride: false}, options: {draggable:true, interactive: true}});
+		toolbox.tools.push({ type:L.PolylineRuler, toolOptions:{ name: "Ruler", type: ToolType.Spline, tab: DrawTabType.Tool }, options: {color:'red', dashArray: '10, 10', doTravelTime: false, travelTimeTerm:"Run", travelTimeUnit: 525, interactive: false }});
+		toolbox.tools.push({ type: L.positionMarker, toolOptions:{ name: "Position Pin", type: ToolType.Static, tab: DrawTabType.Tool, allowTooltipOverride: false}, options: {draggable:true, interactive: true}});
 
-		//toolbox.tools.push({ type:L.CompositeShape, toolOptions:{ name: "Beacon Composite", type: true, hasMiddleDot: false }, options: { radius: 23000, color:'red', interactive: false, compositeOptions:{shapes:[{type:L.circle, options: {radius: 18500, color:'red', interactive: false }},{type:L.circle, options: {radius: 12000, color:'red', interactive: false }}]} }});
+		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Beacon Composite", type: ToolType.Static }, options: { radius: 23000, color:'red', interactive: false, compOptions:{layers:[{type:L.circle, options: {radius: 18500, color:'red', interactive: false }},{type:L.circle, options: {radius: 12000, color:'red', interactive: false }}]} }});
 	
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T1", type: ToolType.Static},
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T1", type: ToolType.Static, tab: DrawTabType.Icon},
 		iconOptions:{iconUrl: "./img/icons/IconAncientT1.png", size: 76},
 		tooltipOptions:{offset:{y:-43}},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T2", type: ToolType.Static },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T2", type: ToolType.Static, tab: DrawTabType.Icon},
 		iconOptions:{iconUrl: "./img/icons/IconAncientT2.png", size: 76},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T3", type: ToolType.Static },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Ancient T3", type: ToolType.Static, tab: DrawTabType.Icon},
 		iconOptions:{iconUrl: "./img/icons/IconAncientT3.png", size: 76},
 		tooltipOptions:{offset:{y:-55}},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T1", type: ToolType.Static },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T1", type: ToolType.Static, tab: DrawTabType.Icon},
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT1.png", size: 76},
 		tooltipOptions:{offset:{y:-45}},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T2", type: ToolType.Static },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T2", type: ToolType.Static, tab: DrawTabType.Icon},
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT2.png", size: 76},
 		options: { interactive: false }});
 		
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T3", type: ToolType.Static },
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant T3", type: ToolType.Static, tab: DrawTabType.Icon},
 		iconOptions:{iconUrl: "./img/icons/IconRemnantT3.png", size: 76},
 		tooltipOptions:{offset:{y:-55}},
 		options: { interactive: false }});
 
 		//Structure Icons
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Large Camp", type: ToolType.Static }, 
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Large Camp", type: ToolType.Static, tab: DrawTabType.Icon}, 
 		iconOptions:{iconUrl: "./img/icons/IconCamp.png", size: 64}, 
 		tooltipOptions:{offset:{y:-42}}, 
 		options: { interactive: false }});
 
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Homestead", type: ToolType.Static }, 
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Homestead", type: ToolType.Static, tab: DrawTabType.Icon}, 
 		iconOptions:{iconUrl: "./img/icons/IconHomestead.png", size: 64}, 
 		tooltipOptions:{offset:{y:-42}}, 
 		options: { interactive: false }});
 		//Foxhole region testing
-		//toolbox.tools.push({ type:L.circle, toolOptions:{ name: "Foxhole Hex", type: true, hasMiddleDot: true }, options: { color:'red', radius: 219700, interactive: false }});
+		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Foxhole Hex", type: true }, options: { color:'red', radius: 219700, interactive: false }});
 		//toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Remnant Hex Img", type: true }, iconOptions:{iconUrl: "./img/FoxholeRegion.png", size: 218}, options: { interactive: false }});
 		
 		
@@ -237,21 +366,22 @@ const leafMap = {
 	processAnvilData: function(mapHeight, mapWidth)
 	{
 		console.log("Starting map data processing");
-	
-		if(!Calligo01MapData)
+		const sTime = Date.now();
+		
+		if(typeof Calligo01MapData === 'undefined')
 		{
-			console.log("Err: Global map data missing");
+			console.warn("Map obj data missing, cannot process.");
 			return;
 		}
 		
 		console.log("Found map data with " + Calligo01MapData.length + " objs");
 		
-		if(!Calligo01GroupData)
+		if(typeof Calligo01GroupData === 'undefined')
 		{
-			console.log("Err: Global group data missing");
+			console.warn("Map groups data missing, cannot process.");
 			return;
 		}
-
+		
 		console.log("Found group data with " + Calligo01GroupData.length + " objs");
 
 		//let MapGroupNames = getmapGroups(worldData);
@@ -423,7 +553,7 @@ const leafMap = {
 						//Main circle shape for most objects
 						if(mapGrp.GroupName == "Location Markers")
 						{
-							shapes.push(L.marker([mapPos.Y, mapPos.X], { opacity: 0 }).bindTooltip(worldObj.AltName, {permanent: true, direction: "center", className: "tooltipLabels", offset: [-20, 30] }));
+							shapes.push(L.marker([mapPos.Y, mapPos.X], { opacity: 0, interactive: false }).bindTooltip(worldObj.AltName, {permanent: true, direction: "center", className: "tooltipLabels", offset: [-20, 30] }));
 						}
 						else
 						{
@@ -431,7 +561,7 @@ const leafMap = {
 						}
 						
 						//Testing heatmap stuff, duplicate data points for effect
-						if(this.mapSettings.DebugDoHeatMap)
+						if(this.mapSettings.DebugFlags && this.mapSettings.DebugFlags.DebugDoHeatMap)
 						{
 							let posMultiplier = 5;
 							if(worldObj.AltName && worldObj.AltName.includes("Branch"))
@@ -484,7 +614,11 @@ const leafMap = {
 			}
 		}
 	
-		console.log("Finished world obj mapping");
+		console.log(`Finished world obj mapping, took ${Date.now() - sTime}ms`);
+		this.isDataLoaded = true;
+		let loadingEle = document.getElementById('loadingOverlay');
+		if(loadingEle)
+			loadingEle.style.display = "none";
 	},
 	_insertMapBorders: function(OutputShapes, PopupOptions)
 	{
@@ -582,73 +716,15 @@ const leafMap = {
 		crossingsGrp.addLayer(crossing6);
 		
 		this.groupLayerController.addOverlay(crossingsGrp, "River Crossings", "General");
-	}
+	},
 };
 
-/*Currently this is an old and awkward interface between the map, the group layer controller, and the DrawPanel plugin*/
-/*TODO Refactor*/
-class UIInterfaceController
-{
-	addShapeToDrawLayer(shape)
-	{
-		let drawLayer = leafMap.groupLayerController.findFirstLayerInGroup("Draw");
-		if(drawLayer)
-		{
-				if(drawLayer.control && !drawLayer.control.checked)
-				{
-					drawLayer.control.click();
-				}
-				
-				drawLayer.addLayer(shape);
-				
-				console.log("Added shape to draw group");
-				
-				return;
-		}
-		else
-		{
-			let drawGroup = L.layerGroup();
-			drawGroup.id = 'CustomDraw';
-			drawGroup.addLayer(shape);
-			drawGroup.addTo(leafMap.map);
-			
-			leafMap.groupLayerController.addOverlay(drawGroup, "Custom Shapes", "Draw");
-			
-			console.log("Created new draw group");
-		}
-	}
-	clearDrawLayer(e)
-	{
-		//Find and clear our draw layer
-		let drawLayers = leafMap.groupLayerController.findLayersByGroupName('Draw');
-		if(drawLayers)
-		{
-			for(const layerId in drawLayers)
-			{
-				const drawGroup = drawLayers[layerId];
-				
-				if(drawGroup && drawGroup.id == "CustomDraw" && drawGroup.control && drawGroup.control.checked === true)
-				{
-					console.log("Clearing draw group");
-					drawGroup.clearLayers();
-					return;
-					
-					//Version that would check if mouse event was inside bounds of a shape to remove draw layer
-					/*for(const groupLayerId in drawGroup._layers)
-					{
-						let layer = drawGroup._layers[groupLayerId];
-						if(layer.getBounds && layer.getBounds().contains(e.latlng))
-						{
-							console.log("Clearing draw group " + layer);
-							drawGroup.clearLayers();
-							return;
-						}
-					}*/
-				}
-			}
-		}
-	}
-}
+//Draw panel tab types
+const DrawTabType = Object.freeze({
+	Tool: 'tools',
+	Radius: 'radius',
+	Icon: 'icons',
+});
 
 //Define static map settings
 class MapSettings
@@ -683,6 +759,7 @@ class MapSettings
 	DebugFlags =
 	{
 		DebugRegionBorders: false,
+		DebugDrawLayerBounds:false,
 		DebugDoHeatMap: false
 	}
 	constructor() 
@@ -696,7 +773,6 @@ class MapSettings
 leafMap.init();
 
 /*Misc Functions and classes*/
-
 function RelativePos(v1, v2)
 {
 	return [v1[0] + v2[0], v1[1] + v2[1]];
@@ -711,11 +787,11 @@ function GamePosToMapPos(pos)
 	};
 }
 
-/*Add a setable ID onto layer groups*/
+/*Add a extra tag onto layer groups*/
 L.LayerGroup.include({
-    customGetLayer: function (id) {
+    getLayerTag: function (tag) {
         for (var i in this._layers) {
-            if (this._layers[i].id == id) {
+            if (this._layers[i].tag == tag) {
                return this._layers[i];
             }
         }

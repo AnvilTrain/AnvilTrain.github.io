@@ -24,13 +24,16 @@
 		<script src="./plugins/L.GroupLayerController.js"></script>
 		<script src="./plugins/L.InfoPanel.js"></script>
 		<script src="./plugins/L.DrawPanel.js"></script>
-		<script src="mapgroups.js"></script>
-		<script src="mapdata.js"></script>
+		<script src="mapgroups.js" defer></script>
+		<script src="mapdata.js" defer></script>
 	</head>
 	<body>
 		<div id="content-wrap">
 			<nav><a href="javascript:location.reload()">Map</a><a href="raid.html">Raid Calculator</a><a href="crafting.html">Crafting Calculator</a></nav>
 			<div id="content">
+				<div id="loadingOverlay">
+					<h1>Loading...</h1>
+				</div>
 				<div id="leafMap"></div>
 			</div>
 		</div>
