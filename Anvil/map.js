@@ -35,7 +35,7 @@ const leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.5.0 | Game 63832 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.5.1 | Game 65184 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -87,9 +87,14 @@ const leafMap = {
 						//lineWeight: 2,
 					}
 				]
+			},
+			centreOptions: 
+			{
+				isCentreEnabled: true,
+				centrePosition: this.mapSettings.MapBounds.getCenter()
 			}
 		}).addTo(this.map);
-
+		
 		//Setup our draw control
 		this.drawControl = L.control.drawPanel({
 			position: 'topleft',
@@ -251,10 +256,11 @@ const leafMap = {
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 64000, interactive: false, compOptions:{middleDot: true}} });
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4800, interactive: false, compOptions:{middleDot: true}} });
 
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 0 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 0 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 3500, interactive: false, compOptions:{middleDot: true}} });
 		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 20 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 6000, interactive: false }});
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 50 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 9000, interactive: false, compOptions:{middleDot: true}} });
-
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 150 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 26300, interactive: false, compOptions:{middleDot: true}} });
+		
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Old TownHall Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
 
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Large Camp Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 5400, interactive: false, compOptions:{middleDot: true}} });
@@ -262,10 +268,8 @@ const leafMap = {
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Well No-Build Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4000, interactive: false, compOptions:{middleDot: true}} });
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Water Wheel No-Build Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4000, interactive: false, compOptions:{middleDot: true}} });
 		
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "T1 Town Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "T2 Town Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 15000, interactive: false, compOptions:{middleDot: true}} });
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "T3 Town Beacon Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 20000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Beacon Min Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Beacon Max Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 36000, interactive: false, compOptions:{middleDot: true}} });
 		
 		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Storm Radius", type: ToolType.Static }, options: { color:'red', radius: 120000, interactive: false }});
 		
@@ -399,13 +403,13 @@ const leafMap = {
 			//Skip certian map groups
 			if(this.mapSettings.DebugFlags && this.mapSettings.DebugFlags.DebugRegionBorders === false)
 			{
-				if(mapGrp.GroupName === "Borders Debug")
+				if(mapGrp.GName === "Borders Debug")
 					continue;
 			}
 			
 			//Attempt to find a matching layer for this map group
 			this.map.eachLayer(function(layer){
-				if(layer.name == mapGrp.GroupName)
+				if(layer.name == mapGrp.GName)
 				{
 					//Match on this layer, abort the function, duplicate names not supported
 					console.log("Duplicate map grp name not supported")
@@ -415,11 +419,11 @@ const leafMap = {
 			
 			if(!mapGrp.MapObjs)
 			{
-				console.log("mapGrp \'" + mapGrp.GroupName + "\' has no attached MapObjs, will be skipped");
+				console.log("mapGrp \'" + mapGrp.GName + "\' has no attached MapObjs, will be skipped");
 				continue;
 			}
 			
-			console.log("Creating " + mapGrp.GroupName + " group layer with " + mapGrp.MapObjs.length + " objs");
+			console.log("Creating " + mapGrp.GName + " group layer with " + mapGrp.MapObjs.length + " objs");
 				
 			let group = L.layerGroup();
 			let popupOptions = { maxWidth: 500 };
@@ -429,6 +433,9 @@ const leafMap = {
 			for(let j = 0; j < mapGrp.MapObjs.length; j++)
 			{
 				let worldObj = mapGrp.MapObjs[j];
+				if(!worldObj.Pos)
+					continue;
+				
 				let mapPos = GamePosToMapPos(worldObj.Pos);
 				let shapes = [];
 				
@@ -438,14 +445,14 @@ const leafMap = {
 				if(worldObj.Type)
 					popupText += `Type: ${worldObj.Type}<br>`;
 				
-				if(worldObj.AltName)
-					popupText += `Name: ${worldObj.AltName}<br>`;
+				if(worldObj.AName)
+					popupText += `Name: ${worldObj.AName}<br>`;
 			
 				if(worldObj.Name)
 					popupText += `Obj-Name: ${worldObj.Name}<br>Map Pos: ${[mapPos.Y, mapPos.X]}`;
 				
 				//Actually create the shapes
-				if(mapGrp.GroupName === "Borders Debug" && hasDoneBorderDebug === false)
+				if(mapGrp.GName === "Borders Debug" && hasDoneBorderDebug === false)
 				{
 					//TODO needs automation via the data
 					if(this.mapSettings.DebugFlags && this.mapSettings.DebugFlags.DebugRegionBorders === true)
@@ -521,9 +528,9 @@ const leafMap = {
 					{
 						//Select the correct radius for the shape
 						let rads = mapGrp.Radius;
-						if(mapGrp.InsideRadius && mapGrp.InsideRadius > 0)
+						if(mapGrp.IRadius && mapGrp.IRadius > 0)
 						{
-							rads = mapGrp.InsideRadius;
+							rads = mapGrp.IRadius;
 						}
 						
 						let topLeftY = mapPos.Y - (rads * (mapGrp.ImgScale / 100));
@@ -544,27 +551,27 @@ const leafMap = {
 					}
 
 					//Some areas should be donut shaped with a minimum radius
-					if(mapGrp.InsideRadius > 0)
+					if(mapGrp.IRadius > 0)
 					{
-						shapes.push(L.donut([mapPos.Y, mapPos.X],{ radius: mapGrp.Radius, innerRadius: mapGrp.InsideRadius, color: mapGrp.HexColour}).bindPopup(popupText, popupOptions));
+						shapes.push(L.donut([mapPos.Y, mapPos.X],{ radius: mapGrp.Radius, innerRadius: mapGrp.IRadius, color: mapGrp.HexCol}).bindPopup(popupText, popupOptions));
 					}
 					else
 					{
 						//Main circle shape for most objects
-						if(mapGrp.GroupName == "Location Markers")
+						if(mapGrp.GName == "Location Markers")
 						{
-							shapes.push(L.marker([mapPos.Y, mapPos.X], { opacity: 0, interactive: false }).bindTooltip(worldObj.AltName, {permanent: true, direction: "center", className: "tooltipLabels", offset: [-20, 30] }));
+							shapes.push(L.marker([mapPos.Y, mapPos.X], { opacity: 0, interactive: false }).bindTooltip(worldObj.AName, {permanent: true, direction: "center", className: "tooltipLabels", offset: [-20, 30] }));
 						}
 						else
 						{
-							shapes.push(L.circle([mapPos.Y, mapPos.X], { radius: mapGrp.Radius, color: mapGrp.HexColour }).bindPopup(popupText, popupOptions));
+							shapes.push(L.circle([mapPos.Y, mapPos.X], { radius: mapGrp.Radius, color: mapGrp.HexCol }).bindPopup(popupText, popupOptions));
 						}
 						
 						//Testing heatmap stuff, duplicate data points for effect
 						if(this.mapSettings.DebugFlags && this.mapSettings.DebugFlags.DebugDoHeatMap)
 						{
 							let posMultiplier = 5;
-							if(worldObj.AltName && worldObj.AltName.includes("Branch"))
+							if(worldObj.AName && worldObj.AName.includes("Branch"))
 							{
 								posMultiplier = 100;
 							}
@@ -585,11 +592,11 @@ const leafMap = {
 			}
 			
 			//Tag our group of layers with a group name under a its parent group name
-			if(mapGrp.ParentGroupName)
+			if(mapGrp.PGName)
 			{
-				this.groupLayerController.addOverlay(group, mapGrp.GroupName, mapGrp.ParentGroupName);
+				this.groupLayerController.addOverlay(group, mapGrp.GName, mapGrp.PGName);
 				
-				if(mapGrp.GroupName == "Location Markers")
+				if(mapGrp.GName == "Location Markers")
 				{
 					group.addTo(this.map);
 				}
@@ -605,12 +612,12 @@ const leafMap = {
 						maxZoom: 1,
 					});
 					
-					this.groupLayerController.addOverlay(HeatLayer, mapGrp.GroupName + " Heat", mapGrp.ParentGroupName);
+					this.groupLayerController.addOverlay(HeatLayer, mapGrp.GName + " Heat", mapGrp.PGName);
 				}
 			}
 			else
 			{
-				this.groupLayerController.addOverlay(group, mapGrp.GroupName, "Misc");
+				this.groupLayerController.addOverlay(group, mapGrp.GName, "Misc");
 			}
 		}
 	
@@ -682,7 +689,7 @@ const leafMap = {
 		{
 			for(let j =0; j < mapObjs.length; j++)
 			{
-				if(groupObjs[i].GroupID == mapObjs[j].GroupID)
+				if(groupObjs[i].GID == mapObjs[j].GID)
 				{
 					if(!groupObjs[i].MapObjs){
 						groupObjs[i].MapObjs = [mapObjs[j]];

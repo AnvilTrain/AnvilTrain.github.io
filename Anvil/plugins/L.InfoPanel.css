@@ -20,6 +20,10 @@
 	height: 44px;
 	text-align: center;
 }
+.info-panel-menu-open
+{
+	min-width: 170px;
+}
 .info-panel-button-icon
 {
 	cursor: pointer;
@@ -66,4 +70,24 @@
 .info-panel-menu-open .info-panel-button {
 	/*pointer-events: none;*/ /* Disable pointer events when menu is open */
 	width:100%;
+}
+#info-panel-centremap-button
+{
+	display: block;
+	height: 20px;
+	width: 80px;
+	background: #242424;
+	cursor: crosshair;
+	border: solid 1px black;
+	text-decoration: none;
+	text-align:center;
+	color: white;
+	margin: auto;
+	margin-top: 10px;
+	user-select: none;
+	border-radius: 2px;
+}
+#info-panel-centremap-button:hover
+{
+	background: #2f2f2f;
 }

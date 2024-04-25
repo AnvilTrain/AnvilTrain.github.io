@@ -1,6 +1,28 @@
-var raidManager = {
-	structureElements:[],
+const RaidManagerTab = Object.freeze({
+  List: 'list',
+  Calculator: 'calc'
+});
+
+const StaticDmgValue = Object.freeze({
+  Torch: 10,
+  Flask: 20,
+  Ram: 250
+})
+
+const ListTableColumns = [
+	{id:1, name:"Structure", class:"cell-name"},
+	{id:2, name:"Health (Default/Extra)"},
+	{id:3, name:"Torch (Min/Max)"},
+	{id:4, name:"Flask (Min/Max)"},
+	{id:5, name:"Ram (Min/Max)", class:"cell-last"}
+];
+
+const raidManager = {
 	structureData:[],
+	listStructureElements:[],
+	calcStructureElements:[],
+	tabList:{},
+	currentTab:{},
 	init:function(){
 		console.log("Init raid");
 		
@@ -8,7 +30,7 @@ var raidManager = {
 		
 		document.addEventListener("DOMContentLoaded", () => 
 		{
-			self._setupPage();
+			self._setupTabs();
 			
 			//Fetch wiki item data (codename, name, icon)
 			//const weaponPromise = wikiQuery('https://anvilempires.wiki.gg/index.php?title=Special:CargoExport&tables=tools,&fields=tools.CodeNameString,tools.NameText,tools.Icon,tools.DamageType1,tools.Damage1,tools.DamageType2,tools.Damage2,tools.IsReleasedAndEnabled&limit=2000&format=json');
@@ -22,61 +44,125 @@ var raidManager = {
 			structPromise.then(function(data){
 				console.log(`Got Struct data with \'${data.length}\' entires`);
 				self._fillStructData(data);
-				self._fillStructureRows(self.structureData, self.gridParentEle, self.rngInputEle);
+				self._fillListStructureRows(self.structureData, self.structureListParentEle, self.rngInputEle);
+				self._fillRaidCalcStructureList(self.structureData, self.structureCraftParentEle);
 			});
+			
+			//Starting Tab
+			self._setTab(RaidManagerTab.List);
 		});
 	},
-	_setupPage:function()
+	/*Setup our tabs*/
+	_setupTabs:function()
+	{
+		let self = this;
+		const listTabBtn = document.getElementById("listTabBtn");
+		const listTabContainer = document.getElementById("listTab");
+		
+		const calcTabBtn = document.getElementById("calcTabBtn");
+		const calcTabContainer = document.getElementById("calcTab");
+			
+		//define our tabs with attached elements
+		this.tabList[RaidManagerTab.List] = {id:RaidManagerTab.List, tabButton: listTabBtn, tabContainer: listTabContainer, tabElements: this.listStructureElements};
+		this.tabList[RaidManagerTab.Calc] = {id:RaidManagerTab.Calc, tabButton: calcTabBtn, tabContainer: calcTabContainer, tabElements: this.calcStructureElements};	
+		
+		listTabBtn.addEventListener('click', function() {
+			self._setTab(RaidManagerTab.List);
+		});
+
+		calcTabBtn.addEventListener('click', function() {
+			//self._setTab(RaidManagerTab.Calc);
+		});
+		
+		this._setupListTab();
+		this._setupCalcTab();
+	},
+	/*Switches to a specific tab*/
+	_setTab:function(tabName)
+	{
+		if(this.tabList && this.tabList[tabName])
+		{
+			//Current tab and new tab is not the same
+			if(this.currentTab != this.tabList[tabName])
+			{
+				//Clear search before we switch
+				if(this.searchListInputEle)
+				{
+					this._applySearchCalc();
+					this.searchListInputEle.value = "";
+				}
+					
+				if(this.searchCalcInputEle)
+				{
+					this.searchCalcInputEle.value = "";
+					this._applySearchList();
+				}
+					
+				//Now switch tabs
+				this.currentTab = this.tabList[tabName];
+				this.currentTab.tabButton.classList.remove('raidTabBtn-disabled');
+				this.currentTab.tabContainer.style.display = "flex";
+
+				//Update the other tabs
+				for(let tabName in this.tabList)
+				{
+					let tab = this.tabList[tabName];
+					
+					if(tab.id != this.currentTab.id)
+					{
+						tab.tabButton.classList.add('raidTabBtn-disabled');
+						tab.tabContainer.style.display = "none";
+					}
+				}
+				
+				console.log(`Switched tab to ${this.currentTab.id}`);
+			}
+		}
+	},
+	_setupListTab:function()
 	{
 		const self = this;
 		
-		const parent = document.getElementById("content");
-		const gridWrapper = document.createElement("div");
-		gridWrapper.id="gridWrap";
-		parent.appendChild(gridWrapper);
+		//const parent = document.getElementById("listTab");
+		//const gridTopWrap = document.getElementById("listWrap");
 		
-		const gridTop = document.createElement("div");
-		gridTop.id="gridTop";
-		gridWrapper.appendChild(gridTop);
-	
-		const descEle = document.createElement("p");
-		descEle.innerHTML = "This table displays the brute force damage required to destory the target. The 'Min' value assumes no rng and maximum possible damage, the 'Max' assumes the same but a set amount extra to counter the unknown RNG. 20% extra minimum is recomended. This does *NOT* factor in any burn damage.<br>This is all based off the current understanding of damage, and could be incorrect.";
-		gridTop.appendChild(descEle);
+		this.structureListParentEle = document.getElementById("listBottomContent");
 		
-		const searchEle = document.createElement("input");
-		searchEle.type = "text";
-		searchEle.placeholder = "Search...";
-		this.searchInputEle = searchEle;
-		searchEle.addEventListener('input', function () {
-			self._applySearch();
+		this.searchListInputEle = document.getElementById("listSearchbar");
+		this.searchListInputEle.addEventListener('input', function () {
+			self._applySearchList();
 		});
-		gridTop.appendChild(searchEle);
 
-		const rngLbl = document.createElement("label");
-		rngLbl.innerHTML="Extra %:";
-		gridTop.appendChild(rngLbl);
+		this.rngInputEle = document.getElementById("listRng");
 		
-		const rngInputEle = document.createElement("input");
-		rngInputEle.type = "text";
-		rngInputEle.style.width = "25px";
-		rngInputEle.value = "20";
-		rngInputEle.placeholder = "RNG Extra";
-		rngInputEle.addEventListener('input', function () {
-			//This is also very cursed
-			if(!isNaN(this.value))
-			{
-				let rowsParent = document.getElementById("gridBottom");
-				rowsParent.innerHTML = "";
-				self._fillStructureRows(self.structureData, self.gridParentEle, self.rngInputEle);//Lets just throw everything away and restart!
-			}
+		if(this.rngInputEle)
+		{
+			this.rngInputEle.style.width = "25px";
+			this.rngInputEle.value = "20";
+			this.rngInputEle.placeholder = "RNG Extra";
+			this.rngInputEle.addEventListener('input', function () {
+				//This is also very cursed
+				if(!isNaN(this.value))
+				{
+					let rowsParent = document.getElementById("listBottomContent");
+					rowsParent.innerHTML = "";
+					self._fillListStructureRows(self.structureData, self.structureListParentEle, self.rngInputEle);//Lets just throw everything away and restart!
+				}
+			});
+		}
+
+	},
+	_setupCalcTab:function()
+	{
+		const self = this;
+		const parent = document.getElementById("calcTab");
+		
+		this.searchCalcInputEle = document.getElementById("calcSearch");
+		this.searchCalcInputEle.addEventListener('input', function () {
+			self._applySearchCalc();
 		});
-		this.rngInputEle = rngInputEle;
-		gridTop.appendChild(rngInputEle);
 		
-		const gridBottom = document.createElement("div");
-		gridBottom.id="gridBottom";
-		this.gridParentEle = gridBottom;
-		gridWrapper.appendChild(gridBottom);
+		this.structureCraftParentEle = document.getElementById("calcLeftBottom");
 	},
 	_fillStructData:function(data)
 	{
@@ -88,116 +174,249 @@ var raidManager = {
 		
 		for(let i = 0; i < data.length; i++)
 		{
-			if(data[i].MaxHealth == 0 || data[i].IsReleasedAndEnabled === 0)
+			if(data[i].MaxHealth === 0 || data[i].IsReleasedAndEnabled === 0)
 			{
 				continue;
 			}
 			
-			this.structureData.push({codename:data[i].CodeNameString,name:data[i].NameText,tierText:data[i].Tier > 0 && !data[i].NameText.includes("Tier") ? ` (T${data[i].Tier})` : "",iconLink:`https://anvilempires.wiki.gg/wiki/Special:Redirect/file/${data[i].Icon}`,health:data[i].MaxHealth});
+			//Cache the damage per structure per source
+			const dmg = [];
+			for (const [key, value] of Object.entries(StaticDmgValue)) {
+				dmg.push({Src:key, value: data[i].MaxHealth / value});
+			}
+
+			this.structureData.push(
+			{
+				structure:
+				{
+					codename:data[i].CodeNameString,
+					name:data[i].NameText,
+					tierText:data[i].Tier > 0 && !data[i].NameText.includes("Tier") ? ` (T${data[i].Tier})` : "",
+					iconLink:`https://anvilempires.wiki.gg/wiki/Special:Redirect/file/${data[i].Icon}`,
+					health:data[i].MaxHealth
+				},
+				dmg:dmg
+			});
 		}
 		
 		console.log("Finished struct data with " + this.structureData.length);
 	},
-	_fillStructureRows:function(data, parent, rngExtraValue)
+	_fillListStructureRows:function(data, parent, rngExtraValue)
 	{
 		if(!data)
 		{
-			console.log("No structure data to fill grid");
+			console.log("No structure data to fill struct list");
 			return;
-		}		
+		}	
 		
 		const self = this;
 		
-		//TODO remove and handle with tools
-		const TORCH_DMG = 10;
-		const FLASK_DMG = 30;
-		const RAM_DMG = 250;
-		
 		//Flush our list before we refill it
-		this.structureElements = [];
+		this.listStructureElements = [];
 		
-		//Temp fixed header
 		const headerRow = document.createElement("div");
 		headerRow.className = "row row-header";
-		const cell_1 = document.createElement("div");
-		cell_1.innerHTML = "Structure";
-		cell_1.className = "cell cell-name";
-		const cell_2 = document.createElement("div");
-		cell_2.innerHTML = "Health (Default/Extra)";
-		cell_2.className = "cell cell-hp";
-		const cell_3 = document.createElement("div");
-		cell_3.innerHTML = "Torch (Min/Max)";
-		cell_3.className = "cell";
-		const cell_4 = document.createElement("div");
-		cell_4.innerHTML = "Flasks (Min/Max)";
-		cell_4.className = "cell";
-		const cell_5 = document.createElement("div");
-		cell_5.innerHTML = "Ram (Min/Max)";
-		cell_5.className = "cell";
-		headerRow.appendChild(cell_1);
-		headerRow.appendChild(cell_2);
-		headerRow.appendChild(cell_3);
-		headerRow.appendChild(cell_4);
-		headerRow.appendChild(cell_5);
-		parent.appendChild(headerRow);
+		
+		for(let i = 0; i < ListTableColumns.length; i++)
+		{
+			const cell = document.createElement("div");
+			cell.innerText = ListTableColumns[i].name;
+			
+			if(ListTableColumns[i].class)
+				cell.className = `cell ${ListTableColumns[i].class}`;
+			else
+				cell.className = "cell";
+			
+			headerRow.appendChild(cell);
+		}
+		
+		const listHeadParent = document.getElementById("listTopHeader");
+		listHeadParent.innerHTML = "";
+		listHeadParent.appendChild(headerRow);
 
 		//Build our structures into the data we want
 		for(let i = 0; i < data.length; i++)
-		{			
+		{	
+			const structure = data[i].structure;
+			const dmg = data[i].dmg;
+	
 			const row = document.createElement("div");
 			row.className = "row";
+			const rowData = {Health:structure.health};
 
 			//Column cells in each row
-			for(let j =0; j < 5; j++)
+			for(let j = 1; j <= ListTableColumns.length; j++)
 			{
 				const cell = document.createElement("div");
-				let cellClass = "cell " + (j == 0 ? "cell-name" : "");
+				let cellClass = `cell${(j == 1 ? " cell-name" : `${(j==5 ? " cell-last" : "")}`)}`;
 				cell.className = cellClass;
 				
 				//I Hate all of this
+				const cellText = document.createElement("span");
 				switch(j)
 				{
-					case 0:
-						cell.innerHTML = `<img src=${data[i].iconLink} width="48" height="48"><span>${data[i].name}${data[i].tierText}</span>`;
-					break;
 					case 1:
-						cell.innerHTML = `<span>${data[i].health} / ${data[i].health + (data[i].health * (rngExtraValue.value / 100))}</span>`;
+						const cellImg = document.createElement("img");
+						cellImg.src = structure.iconLink;
+						cellImg.width = "48";
+						cellImg.height = "48";
+						cell.appendChild(cellImg);
+						
+						cellText.innerText = `${structure.name}${structure.tierText}`;
 					break;
 					case 2:
-						cell.innerHTML = `<span>${Math.ceil(data[i].health / TORCH_DMG)} / ${Math.ceil(data[i].health / TORCH_DMG + data[i].health / TORCH_DMG * (rngExtraValue.value / 100))}</span>`;
+						if(rngExtraValue)
+							cellText.innerText = `${structure.health} / ${structure.health + (structure.health * (rngExtraValue.value / 100))}`;
+						else
+							cellText.innerText = `${structure.health}`;
 					break;
 					case 3:
-						cell.innerHTML = `<span>${Math.ceil(data[i].health / FLASK_DMG)} / ${Math.ceil(data[i].health / FLASK_DMG + data[i].health / FLASK_DMG * (rngExtraValue.value / 100))}</span>`;
+						cellText.innerText = `${Math.ceil(structure.health / (StaticDmgValue.Torch * 1.25))} / ${Math.ceil(structure.health / (StaticDmgValue.Torch * 0.75))}`;
 					break;
 					case 4:
-						cell.innerHTML = `<span>${Math.ceil(data[i].health / RAM_DMG)} / ${Math.ceil(data[i].health / RAM_DMG + data[i].health / RAM_DMG * (rngExtraValue.value / 100))}</span>`;
+						cellText.innerText = `${Math.ceil(structure.health / (StaticDmgValue.Flask * 1.25))} / ${Math.ceil(structure.health / (StaticDmgValue.Flask * 0.75))}`;
+					break;
+					case 5:
+						cellText.innerText = `${Math.ceil(structure.health / StaticDmgValue.Ram * 1.25)} / ${Math.ceil(structure.health / (StaticDmgValue.Ram * 0.75))}`;
 					break;
 					default:
-						cell.innerHTML = `<span>Cell [${i},${j}]</span>`;
+						cellText.innerText = `Broken Cell [${i},${j}]`;
 					break;
 				}
+				
+				cell.appendChild(cellText);
 				row.appendChild(cell);
 			}
 			
 			//Codename as key for each row element
-			this.structureElements.push({codename:data[i].codename, ele:row});
+			this.listStructureElements.push({codename:structure.codename, rowData:rowData, ele:row});
 			
 			parent.appendChild(row);
 		}
 		
+		//TODO store the list of structures elements into a temp list before sorting, then store the temp list in the listStructureElements
+		//TODO Heading row has also been deleted...
+		//Scuffed sort by HP (Swap b - a to change sort direction)
+		this.listStructureElements.sort((a, b) => b.rowData.Health - a.rowData.Health);
+		parent.innerHTML = "";
+		for(let i = 0; i < this.listStructureElements.length; i++)
+		{
+			parent.appendChild(this.listStructureElements[i].ele);
+		}
+		
+		
 		console.log("Finished rows");
 		
 		//Test if we need to apply results of a search
-		this._applySearch();
+		this._applySearchList();
 	},
-	_applySearch()
+	_fillRaidCalcStructureList:function(data, parent)
 	{
-		if(!this.searchInputEle)
+		if(!data)
+		{
+			console.log("No structure data to fill calc list");
+			return;
+		}
+		
+		const headerRow = document.createElement("div");
+		headerRow.className = "row row-header";
+		const cell_1 = document.createElement("div");
+		cell_1.innerText = "Structure";
+		cell_1.className = "cell cell-name";
+		const cell_2 = document.createElement("div");
+		cell_2.innerText = "Health (Default/Extra)";
+		cell_2.className = "cell cell-hp";
+		headerRow.appendChild(cell_1);
+		headerRow.appendChild(cell_2);
+		parent.appendChild(headerRow);
+		
+		//Build our structures into the data we want
+		for(let i = 0; i < data.length; i++)
+		{	
+			const structure = data[i].structure;
+	
+			const row = document.createElement("div");
+			row.className = "row";
+
+			//Column cells in each row
+			for(let j =0; j < 3; j++)
+			{
+				let cellEle = undefined;
+				if(j == 2)
+				{
+					const rowAddButton = document.createElement("a");
+					rowAddButton.className="calcTabAddButton"
+					rowAddButton.innerText = "Add";
+			
+					rowAddButton.addEventListener('click', function() {
+						//TODO
+						//craftManager.addCraft(elementList,baseData.CodeNameString);
+					});
+					
+					cellEle = rowAddButton;
+				}
+				else
+				{
+					const cell = document.createElement("div");
+					let cellClass = "cell " + (j == 0 ? "cell-name" : "");
+					cell.className = cellClass;
+					cellEle = cell;
+				}
+
+				//I Hate all of this
+				switch(j)
+				{
+					case 0:
+						cellEle.innerHTML = `<img src=${structure.iconLink} width="48" height="48"><span>${structure.name}${structure.tierText}</span>`;
+					break;
+					case 1:
+						cellEle.innerHTML = `<span>${structure.health} / ${structure.health}</span>`;
+					break;
+					case 2:
+						//Don't worry about it, it handles itself in creation, also yes this code is shit
+						break;
+					default:
+						cellEle.innerHTML = `<span>Cell [${i},${j}]</span>`;
+					break;
+				}
+				row.appendChild(cellEle);
+			}
+			
+			//Codename as key for each row element
+			this.calcStructureElements.push({codename:structure.codename, ele:row});
+			
+			parent.appendChild(row);
+		}
+		
+		//Test if we need to apply results of a search
+		this._applySearchCalc();
+	},
+	_createDataRow:function()
+	{
+		
+	},
+	_applySearchList:function()
+	{
+		if(!this.searchListInputEle)
 			return;
 		
 		const rows = document.querySelectorAll('.row:not(.row-header)');
 
-		const searchValue = this.searchInputEle.value.toLowerCase();
+		const searchValue = this.searchListInputEle.value.toLowerCase();
+		rows.forEach(function (row) 
+		{
+			let rowText = row.innerText.toLowerCase();
+			row.style.display = (rowText.includes(searchValue) || rowText == "") ? 'flex' : 'none';
+		});
+	},
+	_applySearchCalc:function()
+	{
+		if(!this.searchCalcInputEle)
+			return;
+		
+		const rows = document.querySelectorAll('.row:not(.row-header)');
+
+		const searchValue = this.searchCalcInputEle.value.toLowerCase();
 		rows.forEach(function (row) 
 		{
 			let rowText = row.innerText.toLowerCase();

@@ -4,7 +4,8 @@ L.Control.InfoPanel = L.Control.extend({
 		position: 'topleft',
 		panelOptions: {title:"Unnamed Panel", text:"No Content"},
 		dragOptions: {isDragEnabled: true, shapeTypes:[L.Circle]},
-		gridOptions: {isGridsEnabled:true, grids:[{name: "Grid 1", isEnabled: "true", height:30, width:20, gridBounds: null, doGridMarkers: true, doPerCellMarkers: false, lineCol: "black", lineWeight: 2}]}
+		gridOptions: {isGridsEnabled: true, grids:[{name: "Grid 1", isEnabled: "true", height:30, width:20, gridBounds: null, doGridMarkers: true, doPerCellMarkers: false, lineCol: "black", lineWeight: 2}]},
+		centreOptions: {isCentreEnabled: true, centrePosition: L.latLngBounds([0,0],[0,0])}
 	},
 	initialize: function (options) 
 	{
@@ -80,6 +81,25 @@ L.Control.InfoPanel = L.Control.extend({
 		this.setPin(true);
 		this._setupElements();
 		
+		//Attach centre map btn
+		if(this.options.centreOptions && this.options.centreOptions.isCentreEnabled === true)
+		{
+			const centreButton = document.createElement("a");
+			centreButton.id = 'info-panel-centremap-button';
+			centreButton.innerText="Centre Map";
+			menuContainer.appendChild(centreButton);
+		
+			centreButton.addEventListener('click', function() {
+				if(self._map)
+				{
+					const middle = self._map.getCenter();
+					const zoom = self._map.getZoom();
+				
+					self._map.flyTo(self.options.centreOptions.centrePosition, self._map.getZoom());
+				}
+			});
+		}
+		
 		if(this.options.dragOptions.isDragEnabled === true)
 		{
 			this._SetupDrag();
@@ -105,23 +125,20 @@ L.Control.InfoPanel = L.Control.extend({
 	{
 		if(!options)
 		{
-			options = { position:"topleft", panelOptions: {}, gridOptions:{} };
+			options = { position:"topleft" };
 		}
 		
 		if(!options.panelOptions)
-		{
 			options.panelOptions = {};
-		}
 		
 		if(!options.dragOptions)
-		{
 			options.dragOptions = {};
-		}
 		
 		if(!options.gridOptions)
-		{
 			options.gridOptions = {};
-		}
+		
+		if(!options.centreOptions)
+			options.centreOptions = {};
 		
 		//Always set the suboptions
 		const panelOpt = 
@@ -164,12 +181,19 @@ L.Control.InfoPanel = L.Control.extend({
 			grids: grids
 		}
 		
+		const centreOpt =
+		{
+			isCentreEnabled: options.centreOptions.isCentreEnabled ?? true,
+			centrePosition: options.centreOptions.centrePosition ?? L.latLngBounds([0,0],[0,0])
+		}
+		
 		let opt = 
 		{
 			position: options.position ?? 'topleft',
 			panelOptions: panelOpt,
 			dragOptions: dragOpt,
-			gridOptions: gridOpt
+			gridOptions: gridOpt,
+			centreOptions: centreOpt
 		}
 		
 		return opt;
@@ -380,7 +404,7 @@ L.Control.InfoPanel = L.Control.extend({
 			this._titleText.style.display = 'none';
 			this._pinIconContainer.style.display = 'none';
 			
-			this._container.classList.add('info-panel-menu-open');
+			this._container.classList.remove('info-panel-menu-open');
 		}
 	},
 	_createButtonIconSVG: function() 

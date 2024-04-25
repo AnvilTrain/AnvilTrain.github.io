@@ -1,4 +1,9 @@
-var craftManager = {
+const CraftManagerTab = Object.freeze({
+  Items: 'items',
+  Structures: 'struct'
+});
+
+const craftManager = {
 	productionData:[],
 	structureElements:[],
 	itemElements:[],
@@ -41,10 +46,10 @@ var craftManager = {
 				});
 				
 				//Get our category data and link it to our tab
-				self._bindCatFilterData('item', itemData);
+				self._bindCatFilterData(CraftManagerTab.Items, itemData);
 				
 				//Set our tab, see _setupTabs for valid options
-				self._setTab('item');
+				self._setTab(CraftManagerTab.Items);
 			});
 
 			//Fetch wiki structure data (all of it)
@@ -54,7 +59,7 @@ var craftManager = {
 				self._fillStructureElements(structData);
 				
 				//Get our category data and link it to our tab
-				self._bindCatFilterData('struct', structData);
+				self._bindCatFilterData(CraftManagerTab.Structures, structData);
 			});
 			
 		});
@@ -69,15 +74,15 @@ var craftManager = {
 		const structTabContainer = document.getElementById("left-side-bottom-structure");
 			
 		//define our tabs with attached elements
-		this.tabList['item'] = {id:"item", tabButton: itemTabBtn, tabContainer: itemTabContainer, tabElements: this.itemElements, CatFilterList: null, CatFilterKey:"PrimaryTable"};
-		this.tabList['struct'] = {id:"struct", tabButton: structTabBtn, tabContainer: structTabContainer, tabElements: this.structureElements, CatFilterList: null, CatFilterKey:"BuildSiteCategory"};	
+		this.tabList[CraftManagerTab.Items] = {id:CraftManagerTab.Items, tabButton: itemTabBtn, tabContainer: itemTabContainer, tabElements: this.itemElements, CatFilterList: null, CatFilterKey:"PrimaryTable"};
+		this.tabList[CraftManagerTab.Structures] = {id:CraftManagerTab.Structures, tabButton: structTabBtn, tabContainer: structTabContainer, tabElements: this.structureElements, CatFilterList: null, CatFilterKey:"BuildSiteCategory"};	
 		
 		itemTabBtn.addEventListener('click', function() {
-			self._setTab('item');
+			self._setTab(CraftManagerTab.Items);
 		});
 
 		structTabBtn.addEventListener('click', function() {
-			self._setTab('struct');
+			self._setTab(CraftManagerTab.Structures);
 		});
 	},
 	/*Switches to a specific tab*/

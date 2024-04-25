@@ -14,6 +14,40 @@
 		<div id="content-wrap">
 			<nav><a href="index.html">Map</a><a href="javascript:location.reload()">Raid Calculator</a><a href="crafting.html">Crafting Calculator</a></nav>
 			<div id="content">
+				<div id="tabWrapper">
+					<div id="tabTop">
+						<a id="listTabBtn" class ="raidTabBtn" >Structure List</a>
+						<a id="calcTabBtn" class ="raidTabBtn raidTabBtn-disabled">Raid Calculator (Soon)</a>
+					</div>
+					<div id="tabContent">
+						<div id ="listTab">
+							<div id="listWrap">
+								<div id="listTop">
+									<div id="listTopBar">
+										<p>This table displays the brute force damage required to destory the target. This does *NOT* factor in any DOT burn damage.</p>
+										<input id="listSearchbar" type="text" placeholder="Search..."/>
+										<!--<label>Extra %:</label>
+										<input id="listRng" type="text" placeholder="Search..."/>-->
+									</div>
+									<div id="listTopHeader"></div>
+								</div>
+								<div id="listBottomContent"></div>
+							</div>
+						</div>
+						<div id ="calcTab">
+							<div id ="calcLeft">
+								<div id="calcLeftTop">
+									<div id="calcLeftTopBar">
+										<input id="calcSearch" type="text" placeholder="Search..."/>
+									</div>
+									<div id="calcLeftTopHeader"></div>
+								</div>
+								<div id="calcLeftBottom"></div>
+							</div>
+							<div id ="calcRight"></div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 		<script data-goatcounter="https://cooltrain.goatcounter.com/count" async src="count.js"></script>
