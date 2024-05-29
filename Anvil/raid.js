@@ -9,6 +9,12 @@ const StaticDmgValue = Object.freeze({
   Ram: 250
 })
 
+const StaticRngRange = Object.freeze({
+  Min: 0.75,
+  Max: 1.25
+})
+
+
 const ListTableColumns = [
 	{id:1, name:"Structure", class:"cell-name"},
 	{id:2, name:"Health (Default/Extra)"},
@@ -174,7 +180,7 @@ const raidManager = {
 		
 		for(let i = 0; i < data.length; i++)
 		{
-			if(data[i].MaxHealth === 0 || data[i].IsReleasedAndEnabled === 0)
+			if(!data[i].MaxHealth || data[i].MaxHealth === 0 || data[i].IsReleasedAndEnabled === 0)
 			{
 				continue;
 			}
@@ -271,13 +277,13 @@ const raidManager = {
 							cellText.innerText = `${structure.health}`;
 					break;
 					case 3:
-						cellText.innerText = `${Math.ceil(structure.health / (StaticDmgValue.Torch * 1.25))} / ${Math.ceil(structure.health / (StaticDmgValue.Torch * 0.75))}`;
+						cellText.innerText = `${Math.ceil(structure.health / (StaticDmgValue.Torch * StaticRngRange.Max))} / ${Math.ceil(structure.health / (StaticDmgValue.Torch * StaticRngRange.Min))}`;
 					break;
 					case 4:
-						cellText.innerText = `${Math.ceil(structure.health / (StaticDmgValue.Flask * 1.25))} / ${Math.ceil(structure.health / (StaticDmgValue.Flask * 0.75))}`;
+						cellText.innerText = `${Math.ceil(structure.health / (StaticDmgValue.Flask * StaticRngRange.Max))} / ${Math.ceil(structure.health / (StaticDmgValue.Flask * StaticRngRange.Min))}`;
 					break;
 					case 5:
-						cellText.innerText = `${Math.ceil(structure.health / StaticDmgValue.Ram * 1.25)} / ${Math.ceil(structure.health / (StaticDmgValue.Ram * 0.75))}`;
+						cellText.innerText = `${Math.ceil(structure.health / StaticDmgValue.Ram * StaticRngRange.Max)} / ${Math.ceil(structure.health / (StaticDmgValue.Ram * StaticRngRange.Min))}`;
 					break;
 					default:
 						cellText.innerText = `Broken Cell [${i},${j}]`;

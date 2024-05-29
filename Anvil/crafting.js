@@ -53,7 +53,7 @@ const craftManager = {
 			});
 
 			//Fetch wiki structure data (all of it)
-			const structPromise = wikiQuery('https://anvilempires.wiki.gg/index.php?title=Special:CargoExport&tables=structuretiers,&fields=structuretiers.CodeNameString,structuretiers.NameText,structuretiers.Icon,structuretiers.Tier,structuretiers.IsBaseTier,structuretiers.RequiredTool,structuretiers.BuildSiteCategory,structuretiers.ResourceBranchesRequirement,structuretiers.ResourceFibreRequirement,structuretiers.AnimalFatRequirement,structuretiers.AnimalBonesRequirement,structuretiers.ProcessedLeatherRequirement,structuretiers.ProcessedWoodRequirement,structuretiers.ProcessedStoneRequirement,structuretiers.ProcessedIronRequirement,structuretiers.ReinforcedWoodRequirement,structuretiers.SilverRequirement,structuretiers.IsReleasedAndEnabled,&limit=2000&format=json');
+			const structPromise = wikiQuery('https://anvilempires.wiki.gg/index.php?title=Special:CargoExport&tables=structuretiers,&fields=structuretiers.CodeNameString,structuretiers.NameText,structuretiers.Icon,structuretiers.Tier,structuretiers.IsBaseTier,structuretiers.RequiredTool,structuretiers.BuildSiteCategory,structuretiers.ResourceBranchesRequirement,structuretiers.ResourceFibreRequirement,structuretiers.AnimalFatRequirement,structuretiers.AnimalBonesRequirement,structuretiers.ProcessedLeatherRequirement,structuretiers.ProcessedWoodRequirement,structuretiers.ProcessedStoneRequirement,structuretiers.ProcessedIronRequirement,structuretiers.ReinforcedWoodRequirement,structuretiers.SilverRequirement,structuretiers.BuildCost,structuretiers.IsReleasedAndEnabled,&limit=2000&format=json');
 			structPromise.then(function(structData){
 				console.log(`Got Struct data with \'${structData.length}\' entires`);
 				self._fillStructureElements(structData);
@@ -354,27 +354,52 @@ const craftManager = {
 		{
 			if(data[i].IsReleasedAndEnabled === 0 || data[i].BuildSiteCategory === "World")
 				continue;
-				
+			
+			if(!data[i].CodeNameString)
+			{
+				console.warn("Structure has no codename, will be skipped", data[i]);
+				continue;
+			}
+
 			let objElement = this.createItemElement(this.structureElements,data[i]);
 			parent.appendChild(objElement);
 			
 			//Process structure cost
-			let structureCost = [];
-
+			const structureCost = [];
 			const inputItems = [];
-			for(const [prop, name] of Object.entries(costMappings))
+			if(data[i].BuildCost)
 			{
-				if(data[i][prop])
-					inputItems.push({name:name,value:data[i][prop]});
+				//New build cost prop processing
+				const costSplits = data[i].BuildCost.split(",");
+				const currentCosts = new Map(); //TODO InputItems should be replaced with the map instead of this temp var, but that will screw with items for now (they have codename too)
+				for(let i = 0; i < costSplits.length; i++)
+				{
+					const itemSplit = costSplits[i].split(":");
+					const itemMatch = this.itemElements.find(item => item.data.baseData.CodeNameString == itemSplit[0]);
+
+					if(itemMatch)
+					{
+						const itemName = itemMatch.data.baseData.NameText;
+						if(itemName && !currentCosts.has(itemName))
+						{
+							inputItems.push({name:itemName,value:itemSplit[1]});
+							currentCosts.set(itemName,0); // Don't care about the value really
+						}
+					}
+				}
 			}
+			else
+			{
+				//Old legacy build cost processing with spit props
+				for(const [prop, name] of Object.entries(costMappings))
+				{
+					if(data[i][prop])
+						inputItems.push({name:name,value:data[i][prop]});
+				}
+			}
+
 			if (inputItems.length > 0) 
-			{
-				//This object format us also used by items recipe costs
-				//So ID would be used if this structure had multiple ways to craft, same for active
-				//Hash is used for duplicate/multiple recipe checking, again only for items
-				//producedAmount also items
-				structureCost.push({id:0, hash:null, producedObj:data[i].CodeNameString, producedAmount:1, isItemBarrled:false, inputItems:inputItems, active:true});
-			}
+				structureCost.push(new CraftRecipe(0, null, data[i].CodeNameString, 1, false, inputItems, true));
 			
 			this.structureElements.push({data:{baseData:data[i],costData:structureCost,rawCostData:[]},element:objElement});
 		}
@@ -521,21 +546,21 @@ const craftManager = {
 					let costHash = inputItems.map(c => `${c.codename}${c.value}`).join('');
 					
 					//Check if this item already has an exact duplicate of this recipe/cost hash
-					let IsDupe = parentItem.data.costData.some(recipe => recipe.hash === costHash);
+					let IsDupe = parentItem.data.costData.some(recipe => recipe.itemHash === costHash);
 					if(IsDupe) continue;
-						
+
 					//Insert non duplicate recipe input items onto item
-					parentItem.data.costData.push({id:parentItem.data.costData.length, hash:costHash, producedObj:validRecipies[i].ProducedItem, producedAmount:validRecipies[i].OutputCount, isItemBarrled:validRecipies[i].bCrateProducedItems == 1, inputItems:inputItems, active: (parentItem.data.costData.length == 0)});
+					parentItem.data.costData.push(new CraftRecipe(parentItem.data.costData.length, costHash, validRecipies[i].ProducedItem, validRecipies[i].OutputCount, validRecipies[i].bCrateProducedItems == 1, inputItems, (parentItem.data.costData.length == 0)));
 				
 					//Do the same for raw costs (DISABLED ON THIS BRANCH)
 					/*
 					const rawItems = this._getRawItems(inputItems);
 					let rawCostHash = inputItems.map(c => `${c.codename}${c.value}`).join('');
 					
-					let IsRawDupe = parentItem.data.rawCostData.some(recipe => recipe.hash === rawCostHash);
+					let IsRawDupe = parentItem.data.rawCostData.some(recipe => recipe.itemHash === rawCostHash);
 					if(IsRawDupe) continue;
 					
-					parentItem.data.rawCostData.push({id:parentItem.data.rawCostData.length, hash:rawCostHash, producedObj:validRecipies[i].ProducedItem, producedAmount:validRecipies[i].OutputCount, isItemBarrled:validRecipies[i].bCrateProducedItems == 1, inputItems:rawItems, active: (parentItem.data.rawCostData.length == 0)});
+					parentItem.data.rawCostData.push({id:parentItem.data.rawCostData.length, itemHash:rawCostHash, producedObj:validRecipies[i].ProducedItem, producedAmount:validRecipies[i].OutputCount, isItemBarrled:validRecipies[i].bCrateProducedItems == 1, inputItems:rawItems, isActive: (parentItem.data.rawCostData.length == 0)});
 					*/
 				}
 				else
@@ -722,21 +747,31 @@ const craftManager = {
 			let combiData = null;
 			for(let i = 0; i < list.length; i++)
 			{
+				if(!list[i].data.baseData.CodeNameString)
+				{
+					console.warn("Crafting item has no codename", list[i].data.baseData);
+					continue;
+				}
+
 				if(list[i].data.baseData.CodeNameString == craftedCodename)
 				{
 					combiData = list[i].data;
 				}	
 			}
 			
-			let listElement = this.createCraftListElement(combiData);
-			parent.appendChild(listElement);
-			
-			this.craftList.push({data:combiData, element:listElement});
-			console.log(`Added ${combiData.baseData.NameText} to craft list`);
-			
-			//Update our craft totals values
-			this._updateCraftListRecipes(combiData.baseData.CodeNameString, 1);
-			this._updateTotalCostValue();
+			//If we found our data continue with adding the craft
+			if(combiData)
+			{
+				let listElement = this.createCraftListElement(combiData);
+				parent.appendChild(listElement);
+				
+				this.craftList.push({data:combiData, element:listElement});
+				console.log(`Added ${combiData.baseData.NameText} to craft list`);
+				
+				//Update our craft totals values
+				this._updateCraftListRecipes(combiData.baseData.CodeNameString, 1);
+				this._updateTotalCostValue();
+			}
 		}
 	},
 	/*Remove a crafting item from the crafting list*/
@@ -790,10 +825,8 @@ const craftManager = {
 							costParent.className = "list-cube-bottom-container";
 								
 							//First item or any active item
-							if(currentCostData.active == true)
-							{
+							if(currentCostData.isActive == true)
 								costParent.classList.add("list-cube-bottom-container-active");
-							}
 								
 							//Set our click recipe listner only if the item has multiple recipes
 							if(craftItem.data.costData.length > 1)
@@ -880,7 +913,7 @@ const craftManager = {
 					//Disable all before we reset
 					for(let j = 0; j < craftItem.data.costData.length; j++)
 					{
-						craftItem.data.costData[j].active = false;
+						craftItem.data.costData[j].isActive = false;
 					}
 					
 					//Id being the recipe order
@@ -888,7 +921,7 @@ const craftManager = {
 				}
 			}
 			
-			selectedCost.active = true
+			selectedCost.isActive = true
 			this._updateTotalCostValue();
 		}
 	},
@@ -926,10 +959,8 @@ const craftManager = {
 					let craftCount = craftListItem.element.getElementsByClassName("CraftListInput")[0].value;
 					
 					//This recipe isn't selected
-					if(!itemRecipe.active)
-					{
+					if(!itemRecipe.isActive)
 						continue;
-					}
 					
 					for(let k = 0; k < itemRecipe.inputItems.length; k++)
 					{
@@ -1106,6 +1137,7 @@ const craftManager = {
 	}
 };
 
+/*Template for crafting settings... duh */
 class CraftSettings
 {
 	wikiImgURL = "https://anvilempires.wiki.gg/wiki/Special:Redirect/file/";
@@ -1113,6 +1145,28 @@ class CraftSettings
 }
 
 craftManager.init();
+
+/*Template for a single crafting recipe, used by both items and structures*/
+class CraftRecipe
+{
+	id;             //recipe ID to tell between multiple ways to craft same object        
+	itemHash;       //is used for duplicate/multiple recipe checking (Items only)
+	producedObj;    //string codename
+	producedAmount; //int amount produced by the recipe (Items only)
+	isItemBarrled;  //legacy value (Items only)
+	inputItems;     //array of objects of [DispName,Amount]
+	isActive;       //if this recipie is active ties with ID for multiple recipes
+	constructor(id, itemHash, producedObj, producedAmount, isItemBarrled, inputItems, isActive) 
+	{
+		this.id = id;
+		this.itemHash = itemHash;
+		this.producedObj = producedObj;
+		this.producedAmount = producedAmount;
+		this.isItemBarrled = isItemBarrled;
+		this.inputItems = inputItems;
+		this.isActive = isActive;
+	}
+}
 
 /*Misc Functions and classes*/
 function wikiQuery(Url)

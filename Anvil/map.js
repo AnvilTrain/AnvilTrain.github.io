@@ -35,7 +35,7 @@ const leafMap = {
 		});
 		
 		//Load plugins and layer controls
-		L.control.watermark({ position: 'bottomright', text: 'Map 1.5.1 | Game 65184 | By Cooltrain' }).addTo(this.map);
+		L.control.watermark({ position: 'bottomright', text: 'Map 1.5.2 | Game 66161 | By Cooltrain' }).addTo(this.map);
 		
 		this.groupLayerController = L.control.groupLayerController(
 		{
@@ -253,15 +253,19 @@ const leafMap = {
 		
 		toolbox.tools.push({ type: null, toolOptions:{ name: "Inks Eraser", type: ToolType.Eraser, tab: DrawTabType.Tool, isDefault: true }, options: { }});
 		
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 64000, interactive: false, compOptions:{middleDot: true}} });
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4800, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Small Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 3000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Large Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4000, interactive: false, compOptions:{middleDot: true}} });
 
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 0 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 3500, interactive: false, compOptions:{middleDot: true}} });
-		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 20 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 6000, interactive: false }});
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 50 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 9000, interactive: false, compOptions:{middleDot: true}} });
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Core 150 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 26300, interactive: false, compOptions:{middleDot: true}} });
+
+		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 64000, interactive: false, compOptions:{middleDot: true}} });
+		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Homestead Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 4800, interactive: false, compOptions:{middleDot: true}} });
+
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town 0 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 3500, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town 20 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 6000, interactive: false }});
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town 50 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 9000, interactive: false, compOptions:{middleDot: true}} });
+		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Town 150 Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 26300, interactive: false, compOptions:{middleDot: true}} });
 		
-		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Old TownHall Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
+		//toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Old TownHall Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 12000, interactive: false, compOptions:{middleDot: true}} });
 
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Large Camp Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 5400, interactive: false, compOptions:{middleDot: true}} });
 		toolbox.tools.push({ type:L.CompositeCircle, toolOptions:{ name: "Pump No-Build Radius", type: ToolType.Static, tab: DrawTabType.Radius }, options: { color:'red', radius: 8000, interactive: false, compOptions:{middleDot: true}} });
@@ -320,8 +324,13 @@ const leafMap = {
 		tooltipOptions:{offset:{y:-42}}, 
 		options: { interactive: false }});
 
-		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Homestead", type: ToolType.Static, tab: DrawTabType.Icon}, 
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Small Homestead", type: ToolType.Static, tab: DrawTabType.Icon}, 
 		iconOptions:{iconUrl: "./img/icons/IconHomestead.png", size: 64}, 
+		tooltipOptions:{offset:{y:-42}}, 
+		options: { interactive: false }});
+
+		toolbox.tools.push({ type:L.marker, toolOptions:{ name: "Large Homestead", type: ToolType.Static, tab: DrawTabType.Icon}, 
+		iconOptions:{iconUrl: "./img/icons/IconLargeHomestead.png", size: 64}, 
 		tooltipOptions:{offset:{y:-42}}, 
 		options: { interactive: false }});
 		//Foxhole region testing
@@ -743,7 +752,7 @@ class MapSettings
 	PosYOffset = 0;
 	PosXOffset = 0;
 	MapBounds = L.latLngBounds([0,0],[0,0]); //MapHeight and MapWidth form this bounds with the offset, this only applies to the content inside the map image
-	MapImage = './img/AnvilMap_Nov27.png';
+	MapImage = './img/AnvilMap_May16.png';
 	MapTreeImage = './img/AnvilMapTreeLayerCustom.png';
 	MapTreeOverlayYOffset = 0;
 	MapTopoImage = './img/GigaMap_TopgoGraphic.png';
